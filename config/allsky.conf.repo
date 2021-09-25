@@ -2,8 +2,8 @@
   # Camera type: auto, ZWO or RPiHQ
   camera = auto
 
-  # Output path - where to write the image.jpg. Must end with /
-  outpath = /home/pi/allsky/
+  # Output path - where to write the image.
+  outpath = /home/pi/allsky
 
   # Output Filename, minus the extension ( jpg, png, etc )
   filename = image
@@ -11,8 +11,8 @@
   # Output Filename Extension: Usually jpg or png
   extension = jpg
 
-  # Where the 'allsky/scripts' folder is. Must end with /
-  scriptspath = /etc/allsky/scripts/
+  # Where the 'allsky/scripts' folder is.
+  scriptspath = /etc/allsky/scripts
 
   # Location for Sunrise/Set calculation
   latitude = 60.7N
@@ -35,12 +35,13 @@
   locale = en_US.UTF-8
 
 [capture]
-  # Use the New or Old exposure method.  Only turn off if no image is captured.
-  newexposure = 1
+  # Only turn on if no image is captured or you're seeing extensive USB timeouts in logs.
+  # Setting to 1 will cause the camera to operate hotter due to it always capturing.
+  continuousExposure = 0
 
   # Image Width/Height - leave 0 for automatic maximum size
-  width = 0
-  height = 0
+  width_px = 0
+  height_px = 0
 
   # Only set to 1 to capture a dark frame, this hides all overlays in the capture.
   # Will continue to capture dark frames until restarted with 0 value.
@@ -49,7 +50,7 @@
   # For cameras with coolers, should the cooler be enabled?
   coolerenabled = 0
   # If Cooling enabled, target temperature in Degrees Celsius
-  targettemp = 0
+  targettemp_c = 0
 
   # Image type: auto, RGB24, RAW8, RAW16, Y8
   #   For color: RGB24
@@ -67,12 +68,12 @@
 
 
   # Set White Balance automatically
-  autowhitebalance = 0
+  autoWhiteBalance = 0
 
   # Manual White Balance, Red and Blue channels
   # When using Auto White Balance, these numbers are the starting point
-  wbr = 53
-  wbb = 90
+  wb_red = 53
+  wb_blue = 90
 
 
   # Range for a PNG image: 0-9. Range for a JPG image: 0-100.
@@ -80,7 +81,7 @@
   quality = 95
 
   # Auto determine USB Bandwidth
-  autousb = 1
+  autoUSB = 1
   # USB Bandwidth, from 40 to 100
   usb = 80
 
@@ -89,60 +90,59 @@
 
 [capture.day]
   autoexposure = 1
-  exposure = 0.5
+  exposure_ms = 0.5
   brightness = 50
-  delay = 5000
-  bin = 1
-
+  delay_ms = 5000
+  binning = 1
 
 [capture.night]
-  autoexposure = 1
-  maxexposure = 20000
-  exposure = 10000
+  autoExposure = 1
+  maxExposure_ms = 20000
+  exposure_ms = 10000
   brightness = 50
-  delay = 10
-  autogain = 0
-  maxgain = 200
+  delay_ms = 10
+  autoGain = 0
+  maxGain = 200
   gain = 50
-  gaintransitiontime = 15
-  bin = 1
+  gainTransitionTime_s = 15
+  binning = 1
 
 [overlay]
   showTime = 1
   timeFormat = %Y-%m-%d %H:%M:%S
   showTemp = 1
-  temptype = C
+  tempType = C
   showExposure = 1
   showGain = 1
   showBrightness = 0
   # Show USB Bandwidth overly, mostly for debugging
-  showusb = 0
-  showhistogram = 0
+  showUSB = 0
+  showHistogram = 0
   text = 
-  extratextfile =
-  extratextage = 600
-  textlineheight = 35
-  textx = 15
-  texty = 70
-  fontname = 0
-  fontcolor = 255 255 255
-  smallfontcolor = 0 0 255
-  fonttype = 0
-  fontsize = 9
-  fontline = 1
-  outlinefont = 0
+  extraTextFile =
+  extraTextAge_s = 600
+  textLineHeight_px = 60
+  textX_px = 15
+  textY_px = 70
+  fontName = Simplex
+  fontColor_rgb = 255 255 255
+  smallFontColor_rgb = 0 0 255
+  fontType = 0
+  fontSize = 7
+  fontLine = 1
+  outlineFont = 0
 
 [webui]
-  always show advanced = 0
-  notification images = 1
-  current alias = current
-  image prefix = liveview-
-  settings = /etc/allsky/allsky.conf
+  alwaysShowAdvanced = 0
+  notificationImages = 1
+  currentAlias = current
+  imagePrefix = liveview-
+  settingsFile = /etc/allsky/allsky.conf
 
 [uhubctl]
-  enable = 1
+  enable = 0
   # The full path to uhubctl, example: /usr/sbin/uhubctl
-  path = 
+  path = /usr/sbin/uhubctl
   # The USB Port which needs to be cycled for your camera.
   # You can determine this by running 'uhubctl' without any options.
   port = 2
@@ -165,26 +165,26 @@
 
 [resize]
   enable = 0
-  height = 1520
-  width = 2028
+  height_px = 1520
+  width_px = 2028
 
 [crop]
   # Useful to avoid distortion on edges of fisheye lens photos
   enable = 0
-  height = 480
-  width = 640
-  offsetX = 0
-  offsetY = 0
+  height_px = 480
+  width_px = 640
+  offsetX_px = 0
+  offsetY_px = 0
 
 [stretch]
   # Enable auto-stretch of night images
   enable = 0
   amount = 10
-  midpint = 10%
+  midpint_pct = 10%
 
 [thumbnail]
-  width = 100
-  height = 75
+  width_px = 100
+  height_px = 75
 
 ########################################################
 ########################################################
@@ -202,8 +202,11 @@
   # system produces corrupt images which then generate funny colors in the summary
   # images.
   enable = 0
-  low threshold = 1
-  high threshold = 90
+
+  # Images whose mean brightness is less than THRESHOLD_LOW or over THRESHOLD_HIGH
+  # percent (max: 100) will be removed.  Set to 0 to disable the brightness checks.
+  lowThreshold_pct = 1
+  highThreshold_pct = 90
 
 [keogram]
   generate = 1
@@ -226,4 +229,3 @@
 
 [upload]
   endOfNight = 0
-
