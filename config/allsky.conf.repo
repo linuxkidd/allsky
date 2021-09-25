@@ -3,16 +3,16 @@
   camera = auto
 
   # Output path - where to write the image.
-  outpath = /home/pi/allsky
-
-  # Output Filename, minus the extension ( jpg, png, etc )
-  filename = image
-
-  # Output Filename Extension: Usually jpg or png
-  extension = jpg
+  path_output = /home/pi/allsky
 
   # Where the 'allsky/scripts' folder is.
-  scripts_path = /etc/allsky/scripts
+  path_scripts = /etc/allsky/scripts
+
+  # Output Filename, minus the extension ( jpg, png, etc )
+  image_name = image
+
+  # Output Filename Extension: Usually jpg or png
+  image_extension = jpg
 
   # Location for Sunrise/Set calculation
   latitude = 60.7N
@@ -42,12 +42,12 @@
 
   # Only set to 1 to capture a dark frame, this hides all overlays in the capture.
   # Will continue to capture dark frames until restarted with 0 value.
-  darkframe = 0
+  dark_frame_capture = 0
 
   # For cameras with coolers, should the cooler be enabled?
-  coolerenabled = 0
+  cooler_enabled = 0
   # If Cooling enabled, target temperature in Degrees Celsius
-  targettemp_c = 0
+  cooler_target_temp_c = 0
 
   # Image type: auto, RGB24, RAW8, RAW16, Y8
   #   For color: RGB24
@@ -234,15 +234,15 @@
   ###################
   # method = rsync
   # dest = user@server:/path/to/allsky/dest
-  # becomes `rsync -r --partial --inplace $NIGHTLY_DIR user@server:/path/to/allsky/dest/
+  # becomes: rsync -r --partial --inplace $NIGHTLY_DIR user@server:/path/to/allsky/dest/
 
   # method = scp
   # dest = user@server:/path/to/allsky/dest
-  # becomes `scp -r $NIGHTLY_DIR user@server:/path/to/allsky/dest/
+  # becomes: scp -r $NIGHTLY_DIR user@server:/path/to/allsky/dest/
 
   # method = ftp
   # dest = user:password@server/path/to/allsky/dest/
-  # becomes lftp ftp://user:password@server/path/to/allsky/dest/ "put ..."
+  # becomes: lftp ftp://user:password@server/path/to/allsky/dest/ "put ..."
 
   method =
   dest =
