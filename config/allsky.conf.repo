@@ -89,22 +89,22 @@
 
 [capture.day]
   autoexposure = 1
-  exposure = 0.58
+  exposure = 0.5
   brightness = 50
-  delay = 30000
+  delay = 5000
   bin = 1
 
 
 [capture.night]
   autoexposure = 1
-  maxexposure = 30000
+  maxexposure = 20000
   exposure = 10000
-  brightness = 100
+  brightness = 50
   delay = 10
-  autogain = 1
-  maxgain = 100
+  autogain = 0
+  maxgain = 200
   gain = 50
-  gaintransitiontime = 0
+  gaintransitiontime = 15
   bin = 1
 
 [overlay]
