@@ -32,7 +32,10 @@
   locale = en_US.UTF-8
 
 [capture]
-  # Only turn on if no image is captured or you're seeing extensive USB timeouts in logs.
+  # This section applies to all capture ( day or night ).  Please see
+  #  [capture.day] or [capture.night] for their respective parameters.
+
+  # Only set to 1 if no image is captured or you're seeing extensive USB timeouts in logs.
   # Setting to 1 will cause the camera to operate hotter due to it always capturing.
   continuous_exposure = 0
 
@@ -41,6 +44,7 @@
   height_px = 0
 
   # Only set to 1 to capture a dark frame, this hides all overlays in the capture.
+  # Be sure your camera lens is in complete darkness, not exposed to the sky during dark capture.
   # Will continue to capture dark frames until restarted with 0 value.
   dark_frame_capture = 0
 
@@ -85,22 +89,56 @@
   flip = N
 
 [capture.day]
+  # Enable auto exposure calcuation during day time capture.
   exposure_auto = 1
+
+  # If auto exposure enabled, this is the starting point, otherwise this is the exposure time.
   exposure_ms = 0.5
-  brightness = 50
+
+  # Brightness target used for auto-exposure, ignored if `exposure_auto = 0`
+  brightness_target = 50
+
+  # Inter-exposure delay
   delay_ms = 5000
+
+  # Camera binning
+  # 1 = binning OFF (1x1), 2 = 2x2 binning, 4 = 4x4 binning.
+  # Check available binning modes for your camera.
   binning = 1
 
 [capture.night]
-  exposure_autp = 1
-  exposure_max_ms = 20000
+  # Enable auto exposure calcuation during day time capture.
+  exposure_auto = 1
+
+  # If auto exposure enabled, this is the starting point, otherwise this is the exposure time.
   exposure_ms = 10000
+
+  # If auto exposure enabled, this is the maximum exposure time permitted.
+  exposure_max_ms = 20000
+
+  # Brightness target used for auto-exposure, ignored if `exposure_auto = 0`
   brightness = 50
+
+  # Inter-exposure delay
   delay_ms = 10
+
+  # Whether to automatically adjust the GAIN of the Camera
   gain_auto = 0
+
+  # Upper gain limit when using `gain_auto = 1`.
   gain_max = 200
+
+  # Manually set the gain (light sensitivity).
+  # Starts at 0. A high value returns a brighter image but more noise too. Not used for daytime (is 0).
   gain = 50
+
+  # Number of minutes over which to increase or decrease the gain when going from day-to-night or night-to-day images.
+  # This helps smooth brightness differences. Only works if `gain_auto = 0`. 0 disables transitions.
   gain_transition_time_s = 15
+
+  # Camera binning
+  # 1 = binning OFF (1x1), 2 = 2x2 binning, 4 = 4x4 binning.
+  # Check available binning modes for your camera.
   binning = 1
 
 [overlay]
