@@ -1,0 +1,10 @@
+Package: allsky
+Version: VERSION
+Section: custom
+Priority: optional
+Architecture: all
+Essential: no
+Recommends: uhubctl
+Depends: DEPENDS
+Maintainer: https://github.com/thomasjacquin/allsky
+Description: AllSky Camera capture software

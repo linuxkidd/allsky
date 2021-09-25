@@ -1,46 +1,5 @@
-#ifdef OPENCV_C_HEADERS
-#include <opencv2/core/types_c.h>
-#include <opencv2/highgui/highgui_c.h>
-#include <opencv2/imgproc/imgproc_c.h>
-#include <opencv2/imgcodecs/legacy/constants_c.h>
-#endif
-
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/viz.hpp>
-#include "include/ASICamera2.h"
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <string>
-#include <iostream>
-#include <cstdio>
-#include <tr1/memory>
-#include <ctime>
-#include <stdlib.h>
-#include <signal.h>
-#include <fstream>
-#include <locale.h>
-
-#define KNRM "\x1B[0m"
-#define KRED "\x1B[31m"
-#define KGRN "\x1B[32m"
-#define KYEL "\x1B[33m"
-#define KBLU "\x1B[34m"
-#define KMAG "\x1B[35m"
-#define KCYN "\x1B[36m"
-#define KWHT "\x1B[37m"
-
-#define USE_HISTOGRAM                     // use the histogram code as a workaround to ZWO's bug
-
-#define US_IN_MS 1000                     // microseconds in a millisecond
-#define MS_IN_SEC 1000                    // milliseconds in a second
-#define US_IN_SEC (US_IN_MS * MS_IN_SEC)  // microseconds in a second
+#include "config.h"
+#include "capture.h"
 
 //-------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------
@@ -56,51 +15,8 @@ pthread_mutex_t mtx_SaveImg;
 pthread_cond_t cond_SatrtSave;
 
 // These are global so they can be used by other routines.
-#define NOT_SET -1	// signifies something isn't set yet
 ASI_CONTROL_CAPS ControlCaps;
-void *retval;
-int gotSignal            = 0;		// did we get a SIGINT (from keyboard) or SIGTERM (from service)?
-int iNumOfCtrl           = 0;
-int CamNum               = 0;
-pthread_t thread_display = 0;
-pthread_t hthdSave       = 0;
-int numExposures         = 0;	// how many valid pictures have we taken so far?
-int currentGain          = NOT_SET;
-
-// Some command-line and other option definitions needed outside of main():
-int tty = 0;	// 1 if we're on a tty (i.e., called from the shell prompt).
-#define DEFAULT_NOTIFICATIONIMAGES 1
-int notificationImages     = DEFAULT_NOTIFICATIONIMAGES;
-#define DEFAULT_FILENAME     "image.jpg"
-char const *fileName       = DEFAULT_FILENAME;
-#define DEFAULT_TIMEFORMAT   "%Y%m%d %H:%M:%S"	// format the time should be displayed in
-char const *timeFormat     = DEFAULT_TIMEFORMAT;
-#define DEFAULT_ASIDAYEXPOSURE   500	// microseconds - good starting point for daytime exposures
-int asiDayExposure         = DEFAULT_ASIDAYEXPOSURE;
-#define DEFAULT_DAYAUTOEXPOSURE  1
-int asiDayAutoExposure     = DEFAULT_DAYAUTOEXPOSURE;	// is it on or off for daylight?
-#define DEFAULT_DAYDELAY     (5 * MS_IN_SEC)	// 5 seconds
-int dayDelay               = DEFAULT_DAYDELAY;	// Delay in milliseconds.
-#define DEFAULT_NIGHTDELAY   (10 * MS_IN_SEC)	// 10 seconds
-int nightDelay             = DEFAULT_NIGHTDELAY;	// Delay in milliseconds.
-#define DEFAULT_ASINIGHTMAXEXPOSURE  (10 * US_IN_MS)	// 10 ms
-int asiNightMaxExposure    = DEFAULT_ASINIGHTMAXEXPOSURE;
-#define DEFAULT_GAIN_TRANSITION_TIME 5		// user specifies minutes
-int gainTransitionTime     = DEFAULT_GAIN_TRANSITION_TIME;
 ASI_BOOL currentAutoExposure = ASI_FALSE;	// is Auto Exposure currently on or off?
-
-#ifdef USE_HISTOGRAM
-long cameraMaxAutoExposureUS  = NOT_SET;	// camera's max auto exposure in us
-#define DEFAULT_BOX_SIZEX       500
-#define DEFAULT_BOX_SIZEY       500
-int histogramBoxSizeX         = DEFAULT_BOX_SIZEX;     // 500 px x 500 px box.  Must be a multiple of 2.
-int histogramBoxSizeY         = DEFAULT_BOX_SIZEY;
-#define DEFAULT_BOX_FROM_LEFT   0.5
-#define DEFAULT_BOX_FROM_TOP    0.5
-// % from left/top side that the center of the box is.  0.5 == the center of the image's X/Y axis
-float histogramBoxPercentFromLeft = DEFAULT_BOX_FROM_LEFT;
-float histogramBoxPercentFromTop = DEFAULT_BOX_FROM_TOP;
-#endif	// USE_HISTOGRAM
 
 char debugText[500];		// buffer to hold debug messages displayed by displayDebugText()
 int debugLevel = 0;
