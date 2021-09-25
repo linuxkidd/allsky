@@ -12,7 +12,7 @@
   extension = jpg
 
   # Where the 'allsky/scripts' folder is.
-  scriptspath = /etc/allsky/scripts
+  scripts_path = /etc/allsky/scripts
 
   # Location for Sunrise/Set calculation
   latitude = 60.7N
@@ -22,14 +22,11 @@
   angle = -6
 
   # Debug logging level, leave at 0 unless needed for troubleshooting
-  debuglevel = 1
+  debug_level = 1
 
 [advanced]
   # Size of the histogram box (X and Y in pixels) and offset from left and top (0-100 percent). Sizes must be even numbers.
-  histogrambox = 500 500 50 50
-
-  # Enable to show an outline of the histogram box, useful for determining what the 'Histogram Box' numbers should be.
-  showhistogrambox = 0
+  histogram_box = 500 500 50 50
 
   # Your locale, used for determining local number conventions ( , vs . etc )
   locale = en_US.UTF-8
@@ -37,7 +34,7 @@
 [capture]
   # Only turn on if no image is captured or you're seeing extensive USB timeouts in logs.
   # Setting to 1 will cause the camera to operate hotter due to it always capturing.
-  continuousExposure = 0
+  continuous_exposure = 0
 
   # Image Width/Height - leave 0 for automatic maximum size
   width_px = 0
@@ -66,9 +63,8 @@
   # aka Brightness, from 0 to a camera-specific upper value. Adds about 1/10 the specified value to every pixel.
   offset = 0
 
-
   # Set White Balance automatically
-  autoWhiteBalance = 0
+  white_balance_auto = 0
 
   # Manual White Balance, Red and Blue channels
   # When using Auto White Balance, these numbers are the starting point
@@ -81,7 +77,7 @@
   quality = 95
 
   # Auto determine USB Bandwidth
-  autoUSB = 1
+  usb_auto = 1
   # USB Bandwidth, from 40 to 100
   usb = 80
 
@@ -89,55 +85,57 @@
   flip = N
 
 [capture.day]
-  autoexposure = 1
+  exposure_auto = 1
   exposure_ms = 0.5
   brightness = 50
   delay_ms = 5000
   binning = 1
 
 [capture.night]
-  autoExposure = 1
-  maxExposure_ms = 20000
+  exposure_autp = 1
+  exposure_max_ms = 20000
   exposure_ms = 10000
   brightness = 50
   delay_ms = 10
-  autoGain = 0
-  maxGain = 200
+  gain_auto = 0
+  gain_max = 200
   gain = 50
-  gainTransitionTime_s = 15
+  gain_transition_time_s = 15
   binning = 1
 
 [overlay]
-  showTime = 1
-  timeFormat = %Y-%m-%d %H:%M:%S
-  showTemp = 1
-  tempType = C
-  showExposure = 1
-  showGain = 1
-  showBrightness = 0
+  time_show = 1
+  time_format = %Y-%m-%d %H:%M:%S
+  temp_show = 1
+  temp_type = C
+  exposure_show = 1
+  gain_show = 1
+  brightness_show = 0
   # Show USB Bandwidth overly, mostly for debugging
-  showUSB = 0
-  showHistogram = 0
+  usb_show = 0
+
+  # Enable to show an outline of the histogram box, useful for determining what the 'Histogram Box' numbers should be.
+  histogram_show = 0
   text = 
-  extraTextFile =
-  extraTextAge_s = 600
-  textLineHeight_px = 60
-  textX_px = 15
-  textY_px = 70
-  fontName = Simplex
-  fontColor_rgb = 255 255 255
-  smallFontColor_rgb = 0 0 255
-  fontType = 0
-  fontSize = 7
-  fontLine = 1
-  outlineFont = 0
+  text_extra_file =
+  text_extra_file_max_age_s = 600
+  text_line_height_px = 60
+  text_x_px = 15
+  text_y_px = 70
+  font_name = Simplex
+  font_color_rgb = 255 255 255
+  font_small_color_rgb = 0 0 255
+  font_type = 0
+  font_size = 7
+  font_line = 1
+  font_outline = 0
 
 [webui]
-  alwaysShowAdvanced = 0
-  notificationImages = 1
-  currentAlias = current
-  imagePrefix = liveview-
-  settingsFile = /etc/allsky/allsky.conf
+  always_show_advanced = 0
+  notification_images = 1
+  current_alias = current
+  image_prefix = liveview-
+  settings_file = /etc/allsky/allsky.conf
 
 [uhubctl]
   enable = 0
@@ -157,10 +155,10 @@
 ########################################################
 
 [postprocessing]
-  subtractDarkFrame = 0
-  autoDelete = 0
-  nightsToKeep = 14
-  captureDay = 1
+  subtract_dark_frame = 0
+  auto_delete = 0
+  nights_to_keep = 14
+  capture_day = 1
   saveDay = 1
 
 [resize]
@@ -173,8 +171,8 @@
   enable = 0
   height_px = 480
   width_px = 640
-  offsetX_px = 0
-  offsetY_px = 0
+  offset_x_px = 0
+  offset_x_px = 0
 
 [stretch]
   # Enable auto-stretch of night images
@@ -205,8 +203,8 @@
 
   # Images whose mean brightness is less than THRESHOLD_LOW or over THRESHOLD_HIGH
   # percent (max: 100) will be removed.  Set to 0 to disable the brightness checks.
-  lowThreshold_pct = 1
-  highThreshold_pct = 90
+  threshold_low_pct = 1
+  threshold_high_pct = 90
 
 [keogram]
   generate = 1
@@ -215,17 +213,39 @@
 [startrails]
   generate = 1
   upload = 0
-  brightnessThreshold = 0.1
+  threshold_brightness = 0.1
 
 [timelapse]
   generate = 0
   upload = 0
   # Width / Height, must be an even number, leave to 0 for same resolution as images.
-  width = 0
-  height = 0
+  width_px = 0
+  height_px = 0
   bitrate = 2000K
   fps = 25
   vcodec = libx264
 
 [upload]
-  endOfNight = 0
+  # Global enable / disable of uploads.  If enabled, provide 'method' and 'dest' below.
+  enable = 0
+
+  ###################
+  # Config Examples:
+  ###################
+  # method = rsync
+  # dest = user@server:/path/to/allsky/dest
+  # becomes `rsync -r --partial --inplace $NIGHTLY_DIR user@server:/path/to/allsky/dest/
+
+  # method = scp
+  # dest = user@server:/path/to/allsky/dest
+  # becomes `scp -r $NIGHTLY_DIR user@server:/path/to/allsky/dest/
+
+  # method = ftp
+  # dest = user:password@server/path/to/allsky/dest/
+  # becomes lftp ftp://user:password@server/path/to/allsky/dest/ "put ..."
+
+  method =
+  dest =
+
+  # Upload 'endOfNight' data to the server?
+  end_of_night = 0
