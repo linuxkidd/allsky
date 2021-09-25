@@ -158,14 +158,35 @@
   text_extra_file =
   text_extra_file_max_age_s = 600
   text_line_height_px = 60
+
+  # Offset from far left to start text.
   text_x_px = 15
+
+  # Offset from top to start text.
   text_y_px = 70
-  font_name = Simplex
+
+  # OpenCV Font Name to use.
+  #
+  # One of:
+  # SIMPLEX, PLAIN, DUPEX, COMPLEX, TRIPLEX, COMPLEX_SMALL
+  # SCRIPT_SIMPLEX, SCRIPT_COMPLEX
+  # 
+  font_name = SIMPLEX
   font_color_rgb = 255 255 255
   font_small_color_rgb = 0 0 255
-  font_type = 0
+
+  # Font Line Type:
+  # Choose between smooth font lines (antialiased), 8-pixel, or 4 pixel connectivity (harder edges).
+  #   0 = Anti-Aliased
+  #   1 = 8 pixel connectivity
+  #   2 = 4 pixel connectivity
+  font_line_type = 0
+
+  # Text Font Size. The time, if displayed, will use this size; other text displayed will be about 20% smaller.
   font_size = 7
-  font_line = 1
+
+  # Font line thickness
+  font_line_thickness = 1
   font_outline = 0
 
 [webui]
