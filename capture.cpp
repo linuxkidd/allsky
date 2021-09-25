@@ -1,10 +1,3 @@
-#ifdef OPENCV_C_HEADERS
-#include <opencv2/core/types_c.h>
-#include <opencv2/highgui/highgui_c.h>
-#include <opencv2/imgproc/imgproc_c.h>
-#include <opencv2/imgcodecs/legacy/constants_c.h>
-#endif
-
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
@@ -245,8 +238,6 @@ void *Display(void *params)
     cv::namedWindow("video", 1);
     while (bDisplay)
     {
-        // With this in, a compile error occurs:
-	// no known conversion for argument 2 from ‘cv::Mat*’ to ‘cv::InputArray’
         cv::imshow("video", pImg);
         cv::waitKey(100);
     }
