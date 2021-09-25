@@ -1,0 +1,226 @@
+[global]
+  # Camera type: auto, ZWO or RPiHQ
+  camera = auto
+
+  # Output path - where to write the image.jpg. Must end with /
+  outpath = /home/pi/allsky/
+
+  # Output Filename, minus the extension ( jpg, png, etc )
+  filename = image
+
+  # Output Filename Extension: Usually jpg or png
+  extension = jpg
+
+  # Where the 'allsky/scripts' folder is. Must end with /
+  scriptspath = /etc/allsky/scripts/
+
+  # Location for Sunrise/Set calculation
+  latitude = 36.042076N
+  longitude = 115.202543W
+
+  # Degrees above(+) or below(-) horizon for the Sun before Day/Night switch
+  angle = -6
+
+  # Debug logging level, leave at 0 unless needed for troubleshooting
+  debuglevel = 0
+
+[advanced]
+  # Size of the histogram box (X and Y in pixels) and offset from left and top (0-100 percent). Sizes must be even numbers.
+  histogrambox = 500 500 50 50
+
+  # Enable to show an outline of the histogram box, useful for determining what the 'Histogram Box' numbers should be.
+  showhistogrambox = 0
+
+  # Your locale, used for determining local number conventions ( , vs . etc )
+  locale = en_US.UTF-8
+
+[capture]
+  # Use the New or Old exposure method.  Only turn off if no image is captured.
+  newexposure = 1
+
+  # Image Width/Height - leave 0 for automatic maximum size
+  width = 0
+  height = 0
+
+  # Only set to 1 to capture a dark frame, this hides all overlays in the capture.
+  # Will continue to capture dark frames until restarted with 0 value.
+  darkframe = 0
+
+  # For cameras with coolers, should the cooler be enabled?
+  coolerenabled = 0
+  # If Cooling enabled, target temperature in Degrees Celsius
+  targettemp = 0
+
+  # Image type: auto, RGB24, RAW8, RAW16, Y8
+  #   For color: RGB24
+  #   For B&W: RAW8, RAW16, Y8
+  # NOTE: Y8 is for converting Color Camera output to B&W only.
+  # If unsure, leave on 'auto'
+  type = RGB24
+
+  # 0 to 100. Changes the difference between light and dark areas.
+  # A high value increases contrast. Not supported on all cameras.
+  gamma = 50
+
+  # aka Brightness, from 0 to a camera-specific upper value. Adds about 1/10 the specified value to every pixel.
+  offset = 0
+
+
+  # Set White Balance automatically
+  autowhitebalance = 0
+
+  # Manual White Balance, Red and Blue channels
+  # When using Auto White Balance, these numbers are the starting point
+  wbr = 53
+  wbb = 90
+
+
+  # Range for a PNG image: 0-9. Range for a JPG image: 0-100.
+  # Higher numbers produce larger, clearer files.  
+  quality = 95
+
+  # Auto determine USB Bandwidth
+  autousb = 1
+  # USB Bandwidth, from 40 to 100
+  usb = 80
+
+  # Flip image: (N)one (H)orizontal (V)ertical (B)oth
+  flip = N
+
+[capture.day]
+  autoexposure = 1
+  exposure = 0.58
+  brightness = 50
+  delay = 30000
+  bin = 1
+
+
+[capture.night]
+  autoexposure = 1
+  maxexposure = 30000
+  exposure = 10000
+  brightness = 100
+  delay = 10
+  autogain = 1
+  maxgain = 100
+  gain = 50
+  gaintransitiontime = 0
+  bin = 1
+
+[overlay]
+  showTime = 1
+  timeFormat = %Y-%m-%d %H:%M:%S
+  showTemp = 1
+  temptype = C
+  showExposure = 1
+  showGain = 1
+  showBrightness = 1
+  # Show USB Bandwidth overly, mostly for debugging
+  showusb = 0
+  showhistogram = 0
+  text = TurtleHerding.com
+  extratextfile =
+  extratextage = 600
+  textlineheight = 35
+  textx = 15
+  texty = 70
+  fontname = 0
+  fontcolor = 255 255 255
+  smallfontcolor = 0 0 255
+  fonttype = 0
+  fontsize = 9
+  fontline = 1
+  outlinefont = 0
+
+[webui]
+  always show advanced = 1
+  notification images = 0
+  current alias = current
+  image prefix = liveview-
+  settings = /etc/allsky/allsky.conf
+
+[uhubctl]
+  enable = 1
+  path = /usr/sbin/uhubctl
+  port = 2
+
+########################################################
+########################################################
+##
+##  Sections below are for post-processing config.
+##  These will apply to individual images
+##
+########################################################
+########################################################
+
+[postprocessing]
+  subtractDarkFrame = 0
+  autoDelete = 0
+  nightsToKeep = 14
+  captureDay = 1
+  saveDay = 1
+
+[resize]
+  enable = 0
+  height = 1520
+  width = 2028
+
+[crop]
+  # Useful to avoid distortion on edges of fisheye lens photos
+  enable = 0
+  height = 480
+  width = 640
+  offsetX = 0
+  offsetY = 0
+
+[stretch]
+  # Enable auto-stretch of night images
+  enable = 0
+  amount = 10
+  midpint = 10%
+
+[thumbnail]
+  width = 100
+  height = 75
+
+########################################################
+########################################################
+##
+##  Sections below are for post-processing config.
+##  These will apply to the collection of images at
+##  the end of the night.
+##
+########################################################
+########################################################
+
+[badremoval]
+  # Scan for, and remove corrupt images before generating keograms and startrails.
+  # This can take several (tens of) minutes to run and isn't necessary unless your
+  # system produces corrupt images which then generate funny colors in the summary
+  # images.
+  enable = 0
+  low threshold = 1
+  high threshold = 90
+
+[keogram]
+  generate = 1
+  upload = 0
+
+[startrails]
+  generate = 1
+  upload = 0
+  brightnessThreshold = 0.1
+
+[timelapse]
+  generate = 0
+  upload = 0
+  # Width / Height, must be an even number, leave to 0 for same resolution as images.
+  width = 0
+  height = 0
+  bitrate = 2000K
+  fps = 25
+  vcodec = libx264
+
+[upload]
+  endOfNight = 0
+
