@@ -1,23 +1,13 @@
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <sys/time.h>
-//#include <time.h>
-#include <unistd.h>
-#include <string.h>
+#include "config.h"
+#include "common.h"
+#include "capture_RPiHQ.h"
+
 //#include <sys/types.h>
-#include <errno.h>
-#include <string>
 #include <iomanip>
 #include <cstring>
 #include <sstream>
 //include <iostream>
 //#include <cstdio>
-#include <tr1/memory>
-//#include <ctime>
-#include <stdlib.h>
-#include <signal.h>
-#include <fstream>
 
 using namespace std;
 
@@ -54,17 +44,6 @@ int notificationImages		= DEFAULT_NOTIFICATIONIMAGES;
 
 //-------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------
-
-char debugText[500];		// buffer to hold debug messages displayed by displayDebugText()
-int debugLevel = 0;
-/**
- * Helper function to display debug info
-**/
-void displayDebugText(const char * text, int requiredLevel) {
-    if (debugLevel >= requiredLevel) {
-        printf("%s", text);
-    }
-}
 
 // Return the numeric time.
 timeval getTimeval()
@@ -151,97 +130,6 @@ void closeUp(int e)
 
 	printf("     ***** Stopping AllSky *****\n");
 	exit(e);
-}
-
-void IntHandle(int i)
-{
-	bMain = false;
-	closeUp(0);
-}
-
-// A user error was found.  Wait for the user to fix it.
-void waitToFix(char const *msg)
-{
-    printf("**********\n");
-    printf(msg);
-    printf("\n");
-    printf("*** After fixing, ");
-    if (tty)
-        printf("restart allsky.sh.\n");
-    else
-        printf("restart the allsky service.\n");
-    if (notificationImages)
-        system("scripts/copy_notification_image.sh Error &");
-    sleep(5);	// give time for image to be copied
-    printf("*** Sleeping until you fix the problem.\n");
-    printf("**********\n");
-    sleep(100000);	// basically, sleep forever until the user fixes this.
-}
-
-// Calculate if it is day or night
-void calculateDayOrNight(const char *latitude, const char *longitude, const char *angle)
-{
-	char sunwaitCommand[128];
-
-	// Log data.  Don't need "exit" or "set".
-	sprintf(sunwaitCommand, "sunwait poll angle %s %s %s", angle, latitude, longitude);
-
-	// Inform user
-	sprintf(debugText, "Determine if it is day or night using variables: desired sun declination angle: %s degrees, latitude: %s, longitude: %s\n", angle, latitude, longitude);
-	displayDebugText(debugText, 1);
-
-	// Determine if it is day or night
-	dayOrNight = exec(sunwaitCommand);
-
-	// RMu, I have no clue what this does...
-	dayOrNight.erase(std::remove(dayOrNight.begin(), dayOrNight.end(), '\n'), dayOrNight.end());
-
-	if (dayOrNight != "DAY" && dayOrNight != "NIGHT")
-	{
-		sprintf(debugText, "*** ERROR: dayOrNight isn't DAY or NIGHT, it's '%s'\n", dayOrNight.c_str());
-		waitToFix(debugText);
-		closeUp(2);
-	}
-}
-
-// Calculate how long until nighttime.
-int calculateTimeToNightTime(const char *latitude, const char *longitude, const char *angle)
-{
-    std::string t;
-    char sunwaitCommand[128];	// returns "hh:mm, hh:mm" (sunrise, sunset)
-    sprintf(sunwaitCommand, "sunwait list angle %s %s %s | awk '{print $2}'", angle, latitude, longitude);
-    t = exec(sunwaitCommand);
-    t.erase(std::remove(t.begin(), t.end(), '\n'), t.end());
-
-    int h=0, m=0, secs;
-    sscanf(t.c_str(), "%d:%d", &h, &m);
-    secs = (h*60*60) + (m*60);
-
-    char *now = getTime("%H:%M");
-    int hNow=0, mNow=0, secsNow;
-    sscanf(now, "%d:%d", &hNow, &mNow);
-    secsNow = (hNow*60*60) + (mNow*60);
-
-    // Handle the (probably rare) case where nighttime is tomorrow
-    if (secsNow > secs)
-    {
-        return(secs + (60*60*24) - secsNow);
-    }
-    else
-    {
-        return(secs - secsNow);
-    }
-}
-
-// write value to log file
-void writeToLog(int val)
-{
-	std::ofstream outfile;
-
-	// Append value to the logfile
-	outfile.open("log.txt", std::ios_base::app);
-	outfile << val;
-	outfile << "\n";
 }
 
 // Build capture command to capture the image from the HQ camera

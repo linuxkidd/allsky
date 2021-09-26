@@ -1,57 +1,43 @@
 #ifndef CAPTURE_H
 
 #define CAPTURE_H
-
-#include "config.h"
-#include "opencv.h"
-#include "include/ASICamera2.h"
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <string>
-#include <iostream>
-#include <cstdio>
-#include <tr1/memory>
-#include <ctime>
-#include <stdlib.h>
-#include <signal.h>
 #include <fstream>
 #include <locale.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include "config.h"
+#include "opencv.h"
+#include "common.h"
+#include "include/ASICamera2.h"
 
-void *retval;
-int gotSignal            = 0;		// did we get a SIGINT (from keyboard) or SIGTERM (from service)?
-int iNumOfCtrl           = 0;
-int CamNum               = 0;
-pthread_t thread_display = 0;
-pthread_t hthdSave       = 0;
-int numExposures         = 0;	// how many valid pictures have we taken so far?
-int currentGain          = NOT_SET;
+extern std::string dayOrNight;
+extern char debugText[500];
+extern char const *config_file;
+extern int debugLevel;
+extern bool help;
 
-// Some command-line and other option definitions needed outside of main():
-int tty = 0;	// 1 if we're on a tty (i.e., called from the shell prompt).
-int notificationImages     = DEFAULT_NOTIFICATIONIMAGES;
-char const *fileName       = DEFAULT_FILENAME;
-char const *timeFormat     = DEFAULT_TIMEFORMAT;
-int asiDayExposure         = DEFAULT_ASIDAYEXPOSURE;
-int asiDayAutoExposure     = DEFAULT_DAYAUTOEXPOSURE;	// is it on or off for daylight?
-int dayDelay               = DEFAULT_DAYDELAY;	// Delay in milliseconds.
-int nightDelay             = DEFAULT_NIGHTDELAY;	// Delay in milliseconds.
-int asiNightMaxExposure    = DEFAULT_ASINIGHTMAXEXPOSURE;
-int gainTransitionTime     = DEFAULT_GAIN_TRANSITION_TIME;
+ASI_ERROR_CODE setControl(int CamNum, ASI_CONTROL_TYPE control, long value, ASI_BOOL makeAuto);
+unsigned long createRGB(int r, int g, int b);
+void cvText(cv::Mat &img, const char *text, int x, int y, double fontsize, int linewidth, int linetype, int fontname,
+            int fontcolor[], int imgtype, int outlinefont);
+void *SaveImgThd(void *para);
+char *getRetCode(ASI_ERROR_CODE code);
+int bytesPerPixel(ASI_IMG_TYPE imageType);
 
 #ifdef USE_HISTOGRAM
-long cameraMaxAutoExposureUS  = NOT_SET;	// camera's max auto exposure in us
+void computeHistogram(unsigned char *imageBuffer, int width, int height, ASI_IMG_TYPE imageType, int *histogram);
+int calculateHistogramMean(int *histogram);
+#endif // USE_HISTOGRAM
 
-int histogramBoxSizeX         = DEFAULT_BOX_SIZEX;     // 500 px x 500 px box.  Must be a multiple of 2.
-int histogramBoxSizeY         = DEFAULT_BOX_SIZEY;
+ASI_ERROR_CODE takeOneExposure(
+        int cameraId,
+        long exposureTimeMicroseconds,
+        unsigned char *imageBuffer, long width, long height,  // where to put image and its size
+        ASI_IMG_TYPE imageType);
 
-// % from left/top side that the center of the box is.  0.5 == the center of the image's X/Y axis
-float histogramBoxPercentFromLeft = DEFAULT_BOX_FROM_LEFT;
-float histogramBoxPercentFromTop = DEFAULT_BOX_FROM_TOP;
-#endif	// USE_HISTOGRAM
+void closeUp(int e);
+bool resetGainTransitionVariables(int dayGain, int nightGain);
+int determineGainChange(int dayGain, int nightGain);
+int main(int argc, char *argv[]);
 
 #endif // CAPTURE_H

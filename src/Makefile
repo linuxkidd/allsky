@@ -68,6 +68,8 @@ endif
 
 CFLAGS += $(DEFS) $(ZWOSDK)
 
+captureSources := capture.cpp capture.h common.cpp common.h config.cpp config.h opencv.h
+
 all:capture capture_RPiHQ startrails keogram sunwait-remove-precompiled sunwait
 
 sunwait-remove-precompiled:
@@ -84,9 +86,21 @@ sunwait:
 	@cp sunwait-src/sunwait .
 	@echo `date +%F\ %R:%S` Build of sunwait complete.
 
-capture:capture.cpp
+config.o: config.cpp config.h
+	@echo `date +%F\ %R:%S` Building config.o...
+	@$(CC) -c config.cpp $(CFLAGS) $(OPENCV) -lASICamera2 $(USB)
+
+common.o: common.cpp common.h config.h opencv.h
+	@echo `date +%F\ %R:%S` Building common.o...
+	@$(CC) -c common.cpp $(CFLAGS) $(OPENCV) -lASICamera2 $(USB)
+
+capture.o: capture.cpp capture.h common.h config.h opencv.h
+	@echo `date +%F\ %R:%S` Building capture.o...
+	@$(CC) -c capture.cpp $(CFLAGS) $(OPENCV) -lASICamera2 $(USB)
+
+capture: config.o common.o capture.o
 	@echo `date +%F\ %R:%S` Building capture program...
-	@$(CC)  capture.cpp -o capture $(CFLAGS) $(OPENCV) -lASICamera2 $(USB)
+	@$(CC)  $^ -o $@ $(CFLAGS) $(OPENCV) -lASICamera2 $(USB)
 	@echo `date +%F\ %R:%S` Build of capture complete.
 
 capture_RPiHQ:capture_RPiHQ.cpp
@@ -162,4 +176,4 @@ install-gui:
 
 
 clean:
-	rm -f capture capture_RPiHQ startrails keogram
+	rm -f capture capture_RPiHQ startrails keogram *.o
