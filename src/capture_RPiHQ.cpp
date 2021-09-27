@@ -31,8 +31,8 @@ using namespace std;
 char const *image_file_name = "image.jpg";
 bool b_main = true;
 //ol b_display = false;
-std::string dayOrNight;
-int numExposures = 0;	// how many valid pictures have we taken so far?
+std::string day_or_night;
+int exposures_counter = 0;	// how many valid pictures have we taken so far?
 
 // Some command-line and other option definitions needed outside of main():
 int tty				= 0;	// 1 if we're on a tty (i.e., called from the shell prompt).
@@ -111,11 +111,11 @@ void *Display(void *params)
 // Exit the program gracefully.
 void closeUp(int e)
 {
-	static int closingUp = 0;		// indicates if we're in the process of exiting.
+	static int closing_up = 0;		// indicates if we're in the process of exiting.
 	// For whatever reason, we're sometimes called twice, but we should only execute once.
-	if (closingUp) return;
+	if (closing_up) return;
 
-	closingUp = 1;
+	closing_up = 1;
 
 	// If we're not on a tty assume we were started by the service.
 	// Unfortunately we don't know if the service is stopping us, or restarting us.
@@ -133,7 +133,7 @@ void closeUp(int e)
 }
 
 // Build capture command to capture the image from the HQ camera
-void RPiHQcapture(int camera_auto_focus, int asiAutoExposure, int asiExposure, int asiAutoGain, int white_balance_auto, double asiGain, int bin, double white_balance_red, double white_balance_blue, int image_rotation, int image_flip, int gamma, int asiBrightness, int quality, const char* image_file_name, int time, int showDetails, const char* ImgText, int font_size, int font_color, int background, int darkframe)
+void RPiHQcapture(int camera_auto_focus, int asiAutoExposure, int camrea_exposure, int asiAutoGain, int white_balance_auto, double camrea_gain, int bin, double white_balance_red, double white_balance_blue, int image_rotation, int image_flip, int gamma, int image_brightness, int quality, const char* image_file_name, int time, int showDetails, const char* ImgText, int font_size, int font_color, int background, int darkframe)
 {
 	sprintf(debugText, "capturing image in file %s\n", image_file_name);
 	displayDebugText(debugText, 3);
@@ -209,14 +209,14 @@ time ( NULL );
 	// Append binning window
 	command += roi;
 
-	if (asiExposure < 1)
+	if (camrea_exposure < 1)
 	{
-		asiExposure = 1;
+		camrea_exposure = 1;
 	}
 
-	if (asiExposure > 240000000)
+	if (camrea_exposure > 240000000)
 	{
-		asiExposure = 240000000;
+		camrea_exposure = 240000000;
 	}
 
 	// Exposure time
@@ -230,10 +230,10 @@ time ( NULL );
 	}
 
 	// Set exposure time
-	else if (asiExposure)
+	else if (camrea_exposure)
 	{
 		ss.str("");
-		ss << asiExposure;
+		ss << camrea_exposure;
 		shutter = "--exposure off --shutter " + ss.str() + " ";
 	}
 
@@ -256,19 +256,19 @@ time ( NULL );
 	}
 
 	// Set manual analog gain setting
-	else if (asiGain) {
-		if (asiGain < 1)
+	else if (camrea_gain) {
+		if (camrea_gain < 1)
 		{
-			asiGain = 1;
+			camrea_gain = 1;
 		}
 
-		if (asiGain > 16)
+		if (camrea_gain > 16)
 		{
-			asiGain = 16;
+			camrea_gain = 16;
 		}
 
 		ss.str("");
-		ss << asiGain;
+		ss << camrea_gain;
 		gain = "--analoggain " + ss.str() + " ";
 	}
 
@@ -379,21 +379,21 @@ time ( NULL );
 	// Brightness
 	string brightness;
 
-	if (asiBrightness < 0)
+	if (image_brightness < 0)
 	{
-		asiBrightness = 0;
+		image_brightness = 0;
 	}
 
-	if (asiBrightness > 100)
+	if (image_brightness > 100)
 	{
-		asiBrightness = 100;
+		image_brightness = 100;
 	}
 
 	// check if brightness setting is set
-	if (asiBrightness!=50)
+	if (image_brightness!=50)
 	{
 		ss.str("");
-		ss << asiBrightness;
+		ss << image_brightness;
 		brightness = "--brightness " + ss.str() + " ";
 	}
 
@@ -474,7 +474,7 @@ time ( NULL );
 	displayDebugText(debugText, 1);
 
 	// Execute raspistill command
-	if (system(cmd) == 0) numExposures++;
+	if (system(cmd) == 0) exposures_counter++;
 }
 
 // Simple function to make flags easier to read for humans.
@@ -528,17 +528,17 @@ int main(int argc, char *argv[])
 	int binning_current        = NOT_SET;
 	int exposure_day_us    = 32;	// milliseconds
 	int exposure_night_us  = 60000000;
-	int currentExposure   = NOT_SET;
+	int exposure_current_value   = NOT_SET;
 	int exposure_night_auto = 0;
 	int exposure_day_auto= 1;
-	int currentAutoExposure = 0;
+	int exposure_auto_current_value = 0;
 	int camera_auto_focus      = 0;
 	double gain_night   = 4;
 	double gain_day     = 1;
-	double currentGain    = NOT_SET;
+	double gain_current_value    = NOT_SET;
 	int gain_night_auto  = 0;
 	int gain_day_auto    = 0;
-	int currentAutoGain   = NOT_SET;
+	int gain_auto_current_value   = NOT_SET;
 	int white_balance_auto        = 0;
 	int delay_night_ms        = 10;   // Delay in milliseconds. Default is 10ms
 	int delay_day_ms          = 15000; // Delay in milliseconds. Default is 15 seconds
@@ -924,11 +924,11 @@ int main(int argc, char *argv[])
 
 	printf("%s", KNRM);
 
-	int iMaxWidth = 4096;
-	int iMaxHeight = 3040;
+	int image_width_max = 4096;
+	int image_height_max = 3040;
 	double pixelSize = 1.55;
 
-	printf("- Resolution: %dx%d\n", iMaxWidth, iMaxHeight);
+	printf("- Resolution: %dx%d\n", image_width_max, image_height_max);
 	printf("- Pixel Size: %1.2fmicrons\n", pixelSize);
 	printf("- Supported Bin: 1x, 2x and 3x\n");
 
@@ -989,8 +989,8 @@ int main(int argc, char *argv[])
 	printf("%s", KNRM);
 
 	// Initialization
-	std::string lastDayOrNight;
-	int displayedNoDaytimeMsg = 0; // Have we displayed "not taking picture during day" message, if applicable?
+	std::string last_day_or_night;
+	int message_no_daytime_shown = 0; // Have we displayed "not taking picture during day" message, if applicable?
 
 	while (b_main)
 	{
@@ -1000,9 +1000,9 @@ int main(int argc, char *argv[])
 		calculateDayOrNight(latitude, longitude, angle);
 
 // Next line is present for testing purposes
-// dayOrNight.assign("NIGHT");
+// day_or_night.assign("NIGHT");
 
-		lastDayOrNight = dayOrNight;
+		last_day_or_night = day_or_night;
 
 // Next lines are present for testing purposes
 sprintf(debugText, "Daytimecapture: %d\n", capture_daytime);
@@ -1014,11 +1014,11 @@ displayDebugText(debugText, 3);
 		{
 			// We're doing dark frames so turn off autoexposure and autogain, and use
 			// nightime gain, delay, exposure, and brightness to mimic a nightime shot.
-			currentAutoExposure = 0;
-			currentAutoGain = 0;
-			currentGain = gain_night;
+			exposure_auto_current_value = 0;
+			gain_auto_current_value = 0;
+			gain_current_value = gain_night;
 			delay_current = delay_night_ms;
-			currentExposure = exposure_night_us;
+			exposure_current_value = exposure_night_us;
 			brightness_current = brightness_target_night;
 			binning_current = binning_night;
 
@@ -1028,7 +1028,7 @@ displayDebugText(debugText, 3);
 			}
 		}
 
-		else if (dayOrNight == "DAY")
+		else if (day_or_night == "DAY")
 		{
 			if (end_of_night == true)		// Execute end of night script
 			{
@@ -1037,7 +1037,7 @@ displayDebugText(debugText, 3);
 				// Reset end of night indicator
 				end_of_night = false;
 
-				displayedNoDaytimeMsg = 0;
+				message_no_daytime_shown = 0;
 			}
 
 // Next line is present for testing purposes
@@ -1047,14 +1047,14 @@ displayDebugText(debugText, 3);
 			if (capture_daytime != 1)
 			{
 				// Only display messages once a day.
-				if (displayedNoDaytimeMsg == 0) {
+				if (message_no_daytime_shown == 0) {
 					if (notification_images) {
 						system("scripts/copy_notification_image.sh CameraOffDuringDay &");
 					}
 					sprintf(debugText, "It's daytime... we're not saving images.\n%s\n",
 						tty ? "Press Ctrl+C to stop" : "Stop the allsky service to end this process.");
 					displayDebugText(debugText, 0);
-					displayedNoDaytimeMsg = 1;
+					message_no_daytime_shown = 1;
 
 					// sleep until almost nighttime, then wake up and sleep a short time
 					int secsTillNight = calculateTimeToNightTime(latitude, longitude, angle);
@@ -1075,7 +1075,7 @@ displayDebugText(debugText, 3);
 			{
 				// Inform user
 				char const *x;
-				if (numExposures > 0)	// so it's easier to see in log file
+				if (exposures_counter > 0)	// so it's easier to see in log file
 					x = "\n==========\n";
 				else
 					x = "";
@@ -1083,16 +1083,16 @@ displayDebugText(debugText, 3);
 				displayDebugText(debugText, 0);
 
 				// set daytime settings
-				currentAutoExposure = exposure_day_auto;
-				currentAutoGain = gain_day_auto;
-				currentGain = gain_day;
+				exposure_auto_current_value = exposure_day_auto;
+				gain_auto_current_value = gain_day_auto;
+				gain_current_value = gain_day;
 				delay_current = delay_day_ms;
-				currentExposure = exposure_day_us;
+				exposure_current_value = exposure_day_us;
 				brightness_current = brightness_target_day;
 				binning_current = binning_day;
 
 				// Inform user
-				sprintf(debugText, "Saving %d ms exposed images with %d seconds delays in between...\n\n", currentExposure * US_IN_MS, delay_current / MS_IN_SEC);
+				sprintf(debugText, "Saving %d ms exposed images with %d seconds delays in between...\n\n", exposure_current_value * US_IN_MS, delay_current / MS_IN_SEC);
 				displayDebugText(debugText, 0);
 			}
 		}
@@ -1100,7 +1100,7 @@ displayDebugText(debugText, 3);
 		else	// NIGHT
 		{
 			char const *x;
-			if (numExposures > 0)	// so it's easier to see in log file
+			if (exposures_counter > 0)	// so it's easier to see in log file
 				x = "\n==========\n";
 			else
 				x = "";
@@ -1108,22 +1108,22 @@ displayDebugText(debugText, 3);
 			displayDebugText(debugText, 0);
 
 			// Set nighttime settings
-			currentAutoExposure = exposure_night_auto;
-			currentAutoGain = gain_night_auto;
-			currentGain = gain_night;
+			exposure_auto_current_value = exposure_night_auto;
+			gain_auto_current_value = gain_night_auto;
+			gain_current_value = gain_night;
 			delay_current = delay_night_ms;
-			currentExposure = exposure_night_us;
+			exposure_current_value = exposure_night_us;
 			brightness_current = brightness_target_night;
 			binning_current = binning_night;
 
 			// Inform user
-			sprintf(debugText, "Saving %d seconds exposure images with %d ms delays in between...\n\n", (int)round(currentExposure / US_IN_SEC), delay_night_ms);
+			sprintf(debugText, "Saving %d seconds exposure images with %d ms delays in between...\n\n", (int)round(exposure_current_value / US_IN_SEC), delay_night_ms);
 			displayDebugText(debugText, 0);
 		}
 
 		// Adjusting variables for chosen binning
-		width  = iMaxWidth / binning_current;
-		height = iMaxHeight / binning_current;
+		width  = image_width_max / binning_current;
+		height = image_height_max / binning_current;
 //		text_offset_from_left_px    = text_offset_from_left_px / binning_current;
 //		text_offset_from_top_px    = text_offset_from_top_px / binning_current;
 //		font_size  = font_size / binning_current;
@@ -1136,17 +1136,17 @@ displayDebugText(debugText, 3);
 			printf("Stop the allsky service to end this process.\n\n");
 
 		// Wait for switch day time -> night time or night time -> day time
-		while (b_main && lastDayOrNight == dayOrNight)
+		while (b_main && last_day_or_night == day_or_night)
 		{
 			// Inform user
 			sprintf(debugText, "Capturing & saving image...\n");
 			displayDebugText(debugText, 0);
 
 			// Capture and save image
-			RPiHQcapture(camera_auto_focus, currentAutoExposure, currentExposure, currentAutoGain, white_balance_auto, currentGain, binning_current, white_balance_red, white_balance_blue, image_rotation, image_flip, gamma, brightness_current, quality, image_file_name, time, showDetails, ImgText, font_size, font_color, background, darkframe);
+			RPiHQcapture(camera_auto_focus, exposure_auto_current_value, exposure_current_value, gain_auto_current_value, white_balance_auto, gain_current_value, binning_current, white_balance_red, white_balance_blue, image_rotation, image_flip, gamma, brightness_current, quality, image_file_name, time, showDetails, ImgText, font_size, font_color, background, darkframe);
 
 			// Check for night time
-			if (dayOrNight == "NIGHT")
+			if (day_or_night == "NIGHT")
 			{
 				// Preserve image during night time
 				system("scripts/saveImageNight.sh &");
@@ -1168,14 +1168,14 @@ displayDebugText(debugText, 3);
 			calculateDayOrNight(latitude, longitude, angle);
 
 // Next line is present for testing purposes
-// dayOrNight.assign("NIGHT");
+// day_or_night.assign("NIGHT");
 
 			// ECC: why bother with the check below for DAY/NIGHT?
 			// Check if it is day time
-			if (dayOrNight=="DAY")
+			if (day_or_night=="DAY")
 			{
 				// Check started capturing during day time
-				if (lastDayOrNight=="DAY")
+				if (last_day_or_night=="DAY")
 				{
 					sprintf(debugText, "Check for day or night: DAY (waiting for changing DAY into NIGHT)...\n");
 					displayDebugText(debugText, 2);
@@ -1192,7 +1192,7 @@ displayDebugText(debugText, 3);
 			else	// NIGHT
 			{
 				// Check started capturing during day time
-				if (lastDayOrNight=="DAY")
+				if (last_day_or_night=="DAY")
 				{
 					sprintf(debugText, "Check for day or night: NIGHT (waiting for changing DAY into NIGHT)...\n");
 					displayDebugText(debugText, 2);
@@ -1210,7 +1210,7 @@ displayDebugText(debugText, 3);
 		}
 
 		// Check for night situation
-		if (lastDayOrNight == "NIGHT")
+		if (last_day_or_night == "NIGHT")
 		{
 			// Flag end of night processing is needed
 			end_of_night = true;

@@ -134,7 +134,7 @@ extern int delay_day_ms;
 extern int capture_daytime;
 extern int extra_file_age;
 extern int font_color[3];
-extern int fontCount;
+extern int font_count;
 extern int font_number;
 extern int gain_transition_time;
 extern int height;
@@ -161,8 +161,8 @@ extern int width;
 extern long exposure_night_us;
 extern long cooler_target_temp_c;
 extern long buffer_size;
-extern long cameraMaxAutoExposureUS;
-extern long currentExposure;
+extern long exposure_camera_max_us;
+extern long exposure_current_value;
 
 #ifdef USE_HISTOGRAM
 extern float histogram_box_center_from_left_pct;

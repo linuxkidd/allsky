@@ -178,7 +178,7 @@ void convertColor(std::string colortmp, int *fontary)
 void convertFont(std::string fontName)
 {
     bool foundfont = false;
-    for(int i=0; i<fontCount; i++)
+    for(int i=0; i<font_count; i++)
     {
         if(strncmp(font_names[i],fontName.c_str(),16))
         {

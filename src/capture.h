@@ -10,13 +10,13 @@
 #include "common.h"
 #include "include/ASICamera2.h"
 
-extern std::string dayOrNight;
+extern std::string day_or_night;
 extern char debugText[500];
 extern char const *config_file;
 extern int debug_level;
 extern bool help;
 
-ASI_ERROR_CODE setControl(int CamNum, ASI_CONTROL_TYPE control, long value, ASI_BOOL makeAuto);
+ASI_ERROR_CODE setControl(int camera_id, ASI_CONTROL_TYPE control, long value, ASI_BOOL make_auto);
 unsigned long createRGB(int r, int g, int b);
 void cvText(cv::Mat &img, const char *text, int x, int y, double font_size, int font_weight, int font_smoothing_options, int font_numbers,
             int font_color[], int imgtype, int font_outline);

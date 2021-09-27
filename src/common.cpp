@@ -2,7 +2,7 @@
 
 //-------------------------------------------------------------------------------------------------------
 char debugText[500]; // buffer to hold debug messages displayed by displayDebugText()
-std::string dayOrNight;
+std::string day_or_night;
 //-------------------------------------------------------------------------------------------------------
 
 // Return the numeric time.
@@ -131,12 +131,12 @@ void calculateDayOrNight(const char *latitude, const char *longitude, const char
     char sunwaitCommand[128];
     // don't need "exit" or "set".
     sprintf(sunwaitCommand, "sunwait poll angle %s %s %s", angle, latitude, longitude);
-    dayOrNight = exec(sunwaitCommand);
-    dayOrNight.erase(std::remove(dayOrNight.begin(), dayOrNight.end(), '\n'), dayOrNight.end());
+    day_or_night = exec(sunwaitCommand);
+    day_or_night.erase(std::remove(day_or_night.begin(), day_or_night.end(), '\n'), day_or_night.end());
 
-    if (dayOrNight != "DAY" && dayOrNight != "NIGHT")
+    if (day_or_night != "DAY" && day_or_night != "NIGHT")
     {
-        sprintf(debugText, "*** ERROR: dayOrNight isn't DAY or NIGHT, it's '%s'\n", dayOrNight.c_str());
+        sprintf(debugText, "*** ERROR: day_or_night isn't DAY or NIGHT, it's '%s'\n", day_or_night.c_str());
         waitToFix(debugText);
         closeUp(2);
     }

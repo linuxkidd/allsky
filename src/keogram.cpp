@@ -106,11 +106,11 @@ int get_font_by_name(char* s) {
 int main(int argc, char* argv[]) {
   int c;
   bool labelsEnabled = true;
-  int fontFace = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
+  int font_face = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
   double fontScale = 2;
   int fontType = cv::LINE_8;
   int thickness = 3;
-  unsigned char fontColor[3] = {255, 0, 0};
+  unsigned char font_color[3] = {255, 0, 0};
   double angle = 0;
   std::string directory, extension, outputfile;
 
@@ -162,15 +162,15 @@ int main(int argc, char* argv[]) {
         if (optarg[0] == '#')  // skip '#' if input is like '#coffee'
           optarg++;
         sscanf(optarg, "%06x", &tmp);
-        fontColor[0] = (tmp >> 16) & 0xff;
-        fontColor[1] = (tmp >> 8) & 0xff;
-        fontColor[2] = tmp & 0xff;
+        font_color[0] = (tmp >> 16) & 0xff;
+        font_color[1] = (tmp >> 8) & 0xff;
+        font_color[2] = tmp & 0xff;
         break;
       case 'L':
         thickness = atoi(optarg);
         break;
       case 'N':
-        fontFace = get_font_by_name(optarg);
+        font_face = get_font_by_name(optarg);
         break;
       case 'S':
         fontScale = atof(optarg);
@@ -259,14 +259,14 @@ int main(int argc, char* argv[]) {
           std::string text(hour);
           int baseline = 0;
           cv::Size textSize =
-              cv::getTextSize(text, fontFace, fontScale, thickness, &baseline);
+              cv::getTextSize(text, font_face, fontScale, thickness, &baseline);
 
           if (f - textSize.width >= 0) {
             cv::putText(accumulated, text,
                         cv::Point(f - textSize.width,
                                   accumulated.rows - textSize.height),
-                        fontFace, fontScale,
-                        cv::Scalar(fontColor[0], fontColor[1], fontColor[2]),
+                        font_face, fontScale,
+                        cv::Scalar(font_color[0], font_color[1], font_color[2]),
                         thickness, fontType);
           }
         }

@@ -6,11 +6,11 @@
 //-------------------------------------------------------------------------------------------------------
 void *retval;
 int iNumOfCtrl           = 0;
-int CamNum               = 0;
+int camera_id               = 0;
 pthread_t thread_display = 0;
 pthread_t thread_save       = 0;
-int numExposures         = 0; // how many valid pictures have we taken so far?
-int currentGain          = NOT_SET;
+int exposures_counter         = 0; // how many valid pictures have we taken so far?
+int gain_current_value          = NOT_SET;
 
 cv::Mat pRgb;
 std::vector<int> compression_parameters;
@@ -21,7 +21,7 @@ pthread_cond_t cond_save_start;
 
 // These are global so they can be used by other routines.
 ASI_CONTROL_CAPS ControlCaps;
-ASI_BOOL currentAutoExposure = ASI_FALSE; // is Auto Exposure currently on or off?
+ASI_BOOL exposure_auto_current_value = ASI_FALSE; // is Auto Exposure currently on or off?
 
 bool continuous_exposure    = true;       // Renamed and logic inverted from 'use_new_exposure_algorithm'
 bool b_main = true, b_display = false;
@@ -36,7 +36,7 @@ int delay_day_ms                 = DEFAULT_DELAY_DAY_MS;        // Delay in mill
 int delay_night_ms               = DEFAULT_DELAY_NIGHT_MS;      // Delay in milliseconds.
 int exposure_night_max_us      = DEFAULT_EXPOSURE_NIGHT_MAX_US;
 int gain_transition_time       = DEFAULT_GAIN_TRANSITION_TIME;
-long cameraMaxAutoExposureUS = NOT_SET; // camera's max auto exposure in us
+long exposure_camera_max_us = NOT_SET; // camera's max auto exposure in us
 
 #ifdef USE_HISTOGRAM
 int histogram_box_height_px = DEFAULT_HISTO_BOX_WIDTH_PX; // 500 px x 500 px box.  Must be a multiple of 2.
@@ -67,20 +67,20 @@ int signal_received            = 0; // did we get a SIGINT (from keyboard) or SI
 //-------------------------------------------------------------------------------------------------------
 
 // Make sure we don't try to update a non-updateable control, and check for errors.
-ASI_ERROR_CODE setControl(int CamNum, ASI_CONTROL_TYPE control, long value, ASI_BOOL makeAuto)
+ASI_ERROR_CODE setControl(int camera_id, ASI_CONTROL_TYPE control, long value, ASI_BOOL make_auto)
 {
     ASI_ERROR_CODE ret = ASI_SUCCESS;
     int i;
     for (i = 0; i < iNumOfCtrl && i <= control; i++) // controls are sorted 1 to n
     {
-        ret = ASIGetControlCaps(CamNum, i, &ControlCaps);
+        ret = ASIGetControlCaps(camera_id, i, &ControlCaps);
 
 #ifdef USE_HISTOGRAM
         // Keep track of the camera's max auto exposure so we don't try to exceed it.
-        if (ControlCaps.ControlType == ASI_AUTO_MAX_EXP && cameraMaxAutoExposureUS == NOT_SET)
+        if (ControlCaps.ControlType == ASI_AUTO_MAX_EXP && exposure_camera_max_us == NOT_SET)
         {
             // MaxValue is in MS so convert to microseconds
-            cameraMaxAutoExposureUS = ControlCaps.MaxValue * US_IN_MS;
+            exposure_camera_max_us = ControlCaps.MaxValue * US_IN_MS;
         }
 #endif
 
@@ -104,14 +104,14 @@ ASI_ERROR_CODE setControl(int CamNum, ASI_CONTROL_TYPE control, long value, ASI_
                     displayDebugText(debugText, 1);
                     value = ControlCaps.MinValue;
                 }
-                if (makeAuto == ASI_TRUE && ControlCaps.IsAutoSupported == ASI_FALSE)
+                if (make_auto == ASI_TRUE && ControlCaps.IsAutoSupported == ASI_FALSE)
                 {
                     sprintf(debugText, "WARNING: control '%s' (#%d) doesn't support auto mode.\n", ControlCaps.Name,
                             ControlCaps.ControlType);
                     displayDebugText(debugText, 1);
-                    makeAuto = ASI_FALSE;
+                    make_auto = ASI_FALSE;
                 }
-                ret = ASISetControlValue(CamNum, control, value, makeAuto);
+                ret = ASISetControlValue(camera_id, control, value, make_auto);
             }
             else
             {
@@ -137,7 +137,7 @@ unsigned long createRGB(int r, int g, int b)
     return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
 }
 
-void cvText(cv::Mat &img, const char *text, int x, int y, double font_size, int font_weight, int font_smoothing_options, int font_numbers,
+void cvText(cv::Mat &img, const char *text, int x, int y, double font_size, int font_weight, int font_smoothing_options, int font_number,
             int font_color[], int imgtype, int font_outline)
 {
     if (imgtype == ASI_IMG_RAW16)
@@ -145,18 +145,18 @@ void cvText(cv::Mat &img, const char *text, int x, int y, double font_size, int 
         unsigned long font_color16 = createRGB(font_color[2], font_color[1], font_color[0]);
         if (font_outline)
         {
-            cv::putText(img, text, cv::Point(x, y), font_numbers, font_size, cv::Scalar(0, 0, 0), font_weight + 4, font_smoothing_options);
+            cv::putText(img, text, cv::Point(x, y), font_number, font_size, cv::Scalar(0, 0, 0), font_weight + 4, font_smoothing_options);
         }
-        cv::putText(img, text, cv::Point(x, y), font_numbers, font_size, font_color16, font_weight, font_smoothing_options);
+        cv::putText(img, text, cv::Point(x, y), font_number, font_size, font_color16, font_weight, font_smoothing_options);
     }
     else
     {
         if (font_outline)
         {
-            cv::putText(img, text, cv::Point(x, y), font_numbers, font_size, cv::Scalar(0, 0, 0, 255), font_weight + 4,
+            cv::putText(img, text, cv::Point(x, y), font_number, font_size, cv::Scalar(0, 0, 0, 255), font_weight + 4,
                         font_smoothing_options);
         }
-        cv::putText(img, text, cv::Point(x, y), font_numbers, font_size,
+        cv::putText(img, text, cv::Point(x, y), font_number, font_size,
                     cv::Scalar(font_color[0], font_color[1], font_color[2], 255), font_weight, font_smoothing_options);
     }
 }
@@ -179,7 +179,7 @@ void *SaveImgThd(void *para)
         if (pRgb.data)
         {
             imwrite(image_file_name, pRgb, compression_parameters);
-            if (dayOrNight == "NIGHT")
+            if (day_or_night == "NIGHT")
             {
                 system("scripts/saveImageNight.sh &");
             }
@@ -344,7 +344,7 @@ void computeHistogram(unsigned char *imageBuffer, int my_image_width, int my_ima
 
 int calculateHistogramMean(int *histogram)
 {
-    int meanBin = 0;
+    int mean_bin = 0;
     int a = 0, b = 0;
     for (int h = 0; h < 256; h++)
     {
@@ -359,8 +359,8 @@ int calculateHistogramMean(int *histogram)
         return (0);
     }
 
-    meanBin = a / b - 1;
-    return meanBin;
+    mean_bin = a / b - 1;
+    return mean_bin;
 }
 #endif
 
@@ -383,7 +383,7 @@ ASI_ERROR_CODE takeOneExposure(int my_camera_id, long exposureTimeMicroseconds, 
             (float)exposureTimeMicroseconds / US_IN_MS, timeout);
     displayDebugText(debugText, 2);
 
-    setControl(my_camera_id, ASI_EXPOSURE, exposureTimeMicroseconds, currentAutoExposure);
+    setControl(my_camera_id, ASI_EXPOSURE, exposureTimeMicroseconds, exposure_auto_current_value);
 
     if (continuous_exposure)
     {
@@ -438,20 +438,20 @@ ASI_ERROR_CODE takeOneExposure(int my_camera_id, long exposureTimeMicroseconds, 
 // Exit the program gracefully.
 void closeUp(int e)
 {
-    static int closingUp = 0; // indicates if we're in the process of exiting.
+    static int closing_up = 0; // indicates if we're in the process of exiting.
     // For whatever reason, we're sometimes called twice, but we should only execute once.
-    if (closingUp)
+    if (closing_up)
         return;
 
-    closingUp = 1;
+    closing_up = 1;
 
-    ASIStopVideoCapture(CamNum);
+    ASIStopVideoCapture(camera_id);
 
     // Seems to hang on ASICloseCamera() if taking a picture when the signal is sent,
     // until the exposure finishes, then it never returns so the remaining code doesn't
     // get executed.  Don't know a way around that, so don't bother closing the camera.
     // Prior versions of allsky didn't do any cleanup, so it should be ok not to close the camera.
-    //    ASICloseCamera(CamNum);
+    //    ASICloseCamera(camera_id);
 
     if (b_display)
     {
@@ -485,12 +485,12 @@ void closeUp(int e)
 
 // Reset the gain transition variables for the first transition image.
 // This is called when the program first starts and at the beginning of every day/night transition.
-// "dayOrNight" is the new value, e.g., if we just transitioned from day to night, it's "NIGHT".
+// "day_or_night" is the new value, e.g., if we just transitioned from day to night, it's "NIGHT".
 bool resetGainTransitionVariables(int dayGain, int nightGain)
 {
     // Many of the "xxx" messages below will go away once we're sure gain transition works.
     sprintf(debugText, "xxx resetGainTransitionVariables(%d, %d) called at %s\n", dayGain, nightGain,
-            dayOrNight.c_str());
+            day_or_night.c_str());
     displayDebugText(debugText, 2);
 
     if (gain_adjust_enable == false)
@@ -501,10 +501,10 @@ bool resetGainTransitionVariables(int dayGain, int nightGain)
         return (false);
     }
 
-    if (numExposures == 0)
+    if (exposures_counter == 0)
     {
         // we don't adjust when the program first starts since there's nothing to transition from
-        sprintf(debugText, "xxx will not adjust gain right now - numExposures == 0\n");
+        sprintf(debugText, "xxx will not adjust gain right now - exposures_counter == 0\n");
         displayDebugText(debugText, 2);
         return (false);
     }
@@ -516,7 +516,7 @@ bool resetGainTransitionVariables(int dayGain, int nightGain)
     // but day exposure is in microseconds, night max is in milliseconds,
     // and delays are in milliseconds, so convert to seconds.
     float time_total_sec;
-    if (dayOrNight == "DAY")
+    if (day_or_night == "DAY")
     {
         time_total_sec = (exposure_day_us / US_IN_SEC) + (delay_day_ms / MS_IN_SEC);
         sprintf(debugText, "xxx time_total_sec=%.1fs, exposure_day_us=%'dus , daydelay=%'dms\n", time_total_sec,
@@ -588,7 +588,7 @@ int determineGainChange(int dayGain, int nightGain)
 
     gain_changes_count++;
     int amt; // amount to adjust gain on next picture
-    if (dayOrNight == "DAY")
+    if (day_or_night == "DAY")
     {
         // During DAY, want to start out adding the full gain adjustment minus the increment on the first image,
         // then DECREASE by gain_total_adjust each exposure.
@@ -614,7 +614,7 @@ int determineGainChange(int dayGain, int nightGain)
     }
 
     sprintf(debugText, "  xxxx Adjusting %s gain by %d on next picture to %d; will be gain change # %d of %d.\n",
-            dayOrNight.c_str(), amt, amt + currentGain, gain_changes_count, gain_transition_images);
+            day_or_night.c_str(), amt, amt + gain_current_value, gain_changes_count, gain_transition_images);
     displayDebugText(debugText, 2);
     return (amt);
 }
@@ -638,7 +638,7 @@ int main(int argc, char *argv[])
                                 "SIMPLEX", "PLAIN",         "DUPEX",          "COMPLEX",
                                 "TRIPLEX", "COMPLEX_SMALL", "SCRIPT_SIMPLEX", "SCRIPT_COMPLEX" };
 
-    int fontCount = sizeof(font_names) / sizeof(font_names[0]);
+    int font_count = sizeof(font_names) / sizeof(font_names[0]);
 
     char time_buffer[128]               = { 0 };
     char tmp_buffer[128]               = { 0 };
@@ -678,9 +678,9 @@ int main(int argc, char *argv[])
     int font_smoothing               = DEFAULT_FONT_SMOOTHING;
 
     int image_width              = DEFAULT_IMAGE_WIDTH_PX;
-    int originalWidth            = image_width;
+    int sensor_width_px            = image_width;
     int image_height             = DEFAULT_IMAGE_HEIGHT_PX;
-    int originalHeight           = image_height;
+    int sensor_height_px           = image_height;
 
     int binning_day                  = DEFAULT_BINNING_DAY;
     int binning_night                = DEFAULT_BINNING_NIGHT;
@@ -692,16 +692,16 @@ int main(int argc, char *argv[])
     int usb_bandwidth_auto      = 0; // is Auto Bandwidth on or off?
 
     long exposure_night_us      = DEFAULT_EXPOSURE_NIGHT_US;
-    long currentExposure        = NOT_SET;
+    long exposure_current_value        = NOT_SET;
     int exposure_night_auto     = DEFAULT_EXPOSURE_NIGHT_AUTO; // is it on or off for nighttime?
-    // currentAutoExposure is global so is defined outside of main()
+    // exposure_auto_current_value is global so is defined outside of main()
 
     int gain_day                = DEFAULT_GAIN_DAY;
     int gain_day_auto           = 0; // is Auto Gain on or off for daytime?
     int gain_night              = DEFAULT_GAIN_NIGHT;
     int gain_night_auto         = DEFAULT_GAIN_NIGHT_AUTO; // is Auto Gain on or off for nighttime?
     int gain_night_max          = DEFAULT_GAIN_NIGHT_MAX;
-    ASI_BOOL currentAutoGain    = ASI_FALSE;
+    ASI_BOOL gain_auto_current_value    = ASI_FALSE;
 
     int delay_current            = NOT_SET;
 
@@ -812,8 +812,8 @@ int main(int argc, char *argv[])
         image_file_name = darkFilename;
     }
 
-    int numDevices = ASIGetNumOfConnectedCameras();
-    if (numDevices <= 0)
+    int camera_count = ASIGetNumOfConnectedCameras();
+    if (camera_count <= 0)
     {
         printf("*** ERROR: No Connected Camera...\n");
         // Don't wait here since it's possible the camera is physically connected
@@ -821,17 +821,17 @@ int main(int argc, char *argv[])
         closeUp(1); // If there are no cameras we can't do anything.
     }
 
-    printf("\nListing Attached Cameras%s:\n", numDevices == 1 ? "" : " (using first one)");
+    printf("\nListing Attached Cameras%s:\n", camera_count == 1 ? "" : " (using first one)");
 
     ASI_CAMERA_INFO ASICameraInfo;
 
-    for (i = 0; i < numDevices; i++)
+    for (i = 0; i < camera_count; i++)
     {
         ASIGetCameraProperty(&ASICameraInfo, i);
         printf("  - %d %s\n", i, ASICameraInfo.Name);
     }
 
-    camera_return_code = ASIOpenCamera(CamNum);
+    camera_return_code = ASIOpenCamera(camera_id);
     if (camera_return_code != ASI_SUCCESS)
     {
         printf("*** ERROR opening camera, check that you have root permissions! (%s)\n", getRetCode(camera_return_code));
@@ -839,12 +839,12 @@ int main(int argc, char *argv[])
     }
 
     printf("\n%s Information:\n", ASICameraInfo.Name);
-    int iMaxWidth, iMaxHeight;
+    int image_width_max, image_height_max;
     double pixelSize;
-    iMaxWidth  = ASICameraInfo.MaxWidth;
-    iMaxHeight = ASICameraInfo.MaxHeight;
+    image_width_max  = ASICameraInfo.MaxWidth;
+    image_height_max = ASICameraInfo.MaxHeight;
     pixelSize  = ASICameraInfo.PixelSize;
-    printf("  - Resolution:%dx%d\n", iMaxWidth, iMaxHeight);
+    printf("  - Resolution:%dx%d\n", image_width_max, image_height_max);
     printf("  - Pixel Size: %1.1fmicrons\n", pixelSize);
     printf("  - Supported Bin: ");
     for (int i = 0; i < 16; ++i)
@@ -873,7 +873,7 @@ int main(int argc, char *argv[])
     const char *ver = ASIGetSDKVersion();
     printf("  - SDK version %s\n", ver);
 
-    camera_return_code = ASIInitCamera(CamNum);
+    camera_return_code = ASIInitCamera(camera_id);
     if (camera_return_code == ASI_SUCCESS)
     {
         printf("  - Initialise Camera OK\n");
@@ -884,13 +884,13 @@ int main(int argc, char *argv[])
         closeUp(1); // Can't do anything so might as well exit.
     }
 
-    ASIGetNumOfControls(CamNum, &iNumOfCtrl);
+    ASIGetNumOfControls(camera_id, &iNumOfCtrl);
     if (debug_level >= 3) // this is really only needed for debugging
     {
         printf("Control Caps:\n");
         for (i = 0; i < iNumOfCtrl; i++)
         {
-            ASIGetControlCaps(CamNum, i, &ControlCaps);
+            ASIGetControlCaps(camera_id, i, &ControlCaps);
             printf("- %s:\n", ControlCaps.Name);
             printf("   - MinValue        = %ld\n", ControlCaps.MinValue);
             printf("   - MaxValue        = %ld\n", ControlCaps.MaxValue);
@@ -903,13 +903,13 @@ int main(int argc, char *argv[])
 
     if (image_width == 0 || image_height == 0)
     {
-        image_width  = iMaxWidth;
-        image_height = iMaxHeight;
+        image_width  = image_width_max;
+        image_height = image_height_max;
     }
-    originalWidth  = image_width;
-    originalHeight = image_height;
+    sensor_width_px  = image_width;
+    sensor_height_px = image_height;
 
-    ASIGetControlValue(CamNum, ASI_TEMPERATURE, &temperature_actual, &bAuto);
+    ASIGetControlValue(camera_id, ASI_TEMPERATURE, &temperature_actual, &bAuto);
     printf("- Sensor temperature: %0.2f\n", (float)temperature_actual / 10.0);
 
     // Handle "auto" image_type.
@@ -1034,23 +1034,23 @@ int main(int argc, char *argv[])
     //-------------------------------------------------------------------------------------------------------
     // These configurations apply to both day and night.
     // Other calls to setControl() are done after we know if we're in daytime or nighttime.
-    setControl(CamNum, ASI_BANDWIDTHOVERLOAD, usb_bandwidth, usb_bandwidth_auto == 1 ? ASI_TRUE : ASI_FALSE);
-    setControl(CamNum, ASI_HIGH_SPEED_MODE, 0, ASI_FALSE); // ZWO sets this in their program
-    setControl(CamNum, ASI_WB_R, white_balance_red, auto_white_balance == 1 ? ASI_TRUE : ASI_FALSE);
-    setControl(CamNum, ASI_WB_B, white_balance_blue, auto_white_balance == 1 ? ASI_TRUE : ASI_FALSE);
-    setControl(CamNum, ASI_GAMMA, gamma, ASI_FALSE);
-    setControl(CamNum, ASI_FLIP, image_flip, ASI_FALSE);
+    setControl(camera_id, ASI_BANDWIDTHOVERLOAD, usb_bandwidth, usb_bandwidth_auto == 1 ? ASI_TRUE : ASI_FALSE);
+    setControl(camera_id, ASI_HIGH_SPEED_MODE, 0, ASI_FALSE); // ZWO sets this in their program
+    setControl(camera_id, ASI_WB_R, white_balance_red, auto_white_balance == 1 ? ASI_TRUE : ASI_FALSE);
+    setControl(camera_id, ASI_WB_B, white_balance_blue, auto_white_balance == 1 ? ASI_TRUE : ASI_FALSE);
+    setControl(camera_id, ASI_GAMMA, gamma, ASI_FALSE);
+    setControl(camera_id, ASI_FLIP, image_flip, ASI_FALSE);
 
     if (ASICameraInfo.IsCoolerCam)
     {
-        camera_return_code = setControl(CamNum, ASI_COOLER_ON, cooler_enabled == 1 ? ASI_TRUE : ASI_FALSE, ASI_FALSE);
+        camera_return_code = setControl(camera_id, ASI_COOLER_ON, cooler_enabled == 1 ? ASI_TRUE : ASI_FALSE, ASI_FALSE);
         if (camera_return_code != ASI_SUCCESS)
         {
             printf("%s", KRED);
             printf(" WARNING: Could not enable cooler: %s, but continuing without it.\n", getRetCode(camera_return_code));
             printf("%s", KNRM);
         }
-        camera_return_code = setControl(CamNum, ASI_TARGET_TEMP, cooler_target_temp_c, ASI_FALSE);
+        camera_return_code = setControl(camera_id, ASI_TARGET_TEMP, cooler_target_temp_c, ASI_FALSE);
         if (camera_return_code != ASI_SUCCESS)
         {
             printf("%s", KRED);
@@ -1076,15 +1076,15 @@ int main(int argc, char *argv[])
     }
 
     // Initialization
-    int exitCode              = 0; // Exit code for main()
+    int exit_code              = 0; // Exit code for main()
     int error_count             = 0; // Number of errors in a row.
     int error_count_max             = 2; // Max number of errors in a row before we exit
-    int originalITextX        = text_offset_from_left_px;
-    int originalITextY        = text_offset_from_top_px;
-    int originalFontsize      = font_size;
+    int text_offset_from_left_pre_binning_px        = text_offset_from_left_px;
+    int text_offset_from_top_pre_binning_px        = text_offset_from_top_px;
+    int font_size_pre_binning      = font_size;
     int originalLinewidth     = font_weight;
-    int displayedNoDaytimeMsg = 0; // Have we displayed "not taking picture during day" message, if applicable?
-    int gainChange            = 0; // how much to change gain up or down
+    int message_no_daytime_shown = 0; // Have we displayed "not taking picture during day" message, if applicable?
+    int gain_change_amount            = 0; // how much to change gain up or down
 
     // If autogain is on, our adjustments to gain will get overwritten by the camera
     // so don't transition.
@@ -1121,7 +1121,7 @@ int main(int argc, char *argv[])
 
     if (continuous_exposure)
     {
-        camera_return_code = ASIStartVideoCapture(CamNum);
+        camera_return_code = ASIStartVideoCapture(camera_id);
         if (camera_return_code != ASI_SUCCESS)
         {
             snprintf(debugText,499,"*** ERROR: Unable to start video capture: %s\n", getRetCode(camera_return_code));
@@ -1132,7 +1132,7 @@ int main(int argc, char *argv[])
 
     while (b_main)
     {
-        std::string lastDayOrNight;
+        std::string last_day_or_night;
 
         // Find out if it is currently DAY or NIGHT
         calculateDayOrNight(latitude, longitude, angle);
@@ -1140,20 +1140,20 @@ int main(int argc, char *argv[])
         if (!darkframe)
             gain_adjust_current = resetGainTransitionVariables(gain_day, gain_night);
 
-        lastDayOrNight = dayOrNight;
+        last_day_or_night = day_or_night;
         if (darkframe)
         {
             // We're doing dark frames so turn off autoexposure and autogain, and use
             // nightime gain, delay, max exposure, bin, and brightness to mimic a nightime shot.
-            currentAutoExposure = ASI_FALSE;
-            setControl(CamNum, ASI_EXPOSURE, currentExposure, currentAutoExposure);
+            exposure_auto_current_value = ASI_FALSE;
+            setControl(camera_id, ASI_EXPOSURE, exposure_current_value, exposure_auto_current_value);
             exposure_night_auto = 0;
-            currentAutoGain      = ASI_FALSE;
+            gain_auto_current_value      = ASI_FALSE;
             // Don't need to set ASI_AUTO_MAX_GAIN since we're not using auto gain
-            setControl(CamNum, ASI_GAIN, gain_night, ASI_FALSE);
-            currentGain       = gain_night;
+            setControl(camera_id, ASI_GAIN, gain_night, ASI_FALSE);
+            gain_current_value       = gain_night;
             delay_current      = delay_night_ms;
-            currentExposure   = exposure_night_max_us * US_IN_MS;
+            exposure_current_value   = exposure_night_max_us * US_IN_MS;
             binning_current        = binning_night;
             brightness_current = brightness_target_night;
 
@@ -1164,7 +1164,7 @@ int main(int argc, char *argv[])
                 system("scripts/copy_notification_image.sh DarkFrames &");
             }
         }
-        else if (dayOrNight == "DAY")
+        else if (day_or_night == "DAY")
         {
             // Setup the daytime capture parameters
             if (end_of_night == true) // Execute end of night script
@@ -1173,20 +1173,20 @@ int main(int argc, char *argv[])
                 displayDebugText(text_buffer, 0);
                 system("scripts/end_of_night.sh &");
                 end_of_night            = false;
-                displayedNoDaytimeMsg = 0;
+                message_no_daytime_shown = 0;
             }
 
             if (capture_daytime != 1)
             {
                 // Only display messages once a day.
-                if (displayedNoDaytimeMsg == 0)
+                if (message_no_daytime_shown == 0)
                 {
                     if (notification_images)
                     {
                         system("scripts/copy_notification_image.sh CameraOffDuringDay &");
                     }
                     displayDebugText("It's daytime... we're not saving images.\nPress Ctrl+C or stop the service to end this process.\n", 0);
-                    displayedNoDaytimeMsg = 1;
+                    message_no_daytime_shown = 1;
 
                     // sleep until almost nighttime, then wake up and sleep a short time
                     int secsTillNight = calculateTimeToNightTime(latitude, longitude, angle);
@@ -1213,49 +1213,49 @@ int main(int argc, char *argv[])
                 {
                     sprintf(text_buffer, "Turning off daytime auto-exposure to use histogram exposure.\n");
                     displayDebugText(text_buffer, 2);
-                    currentAutoExposure = ASI_FALSE;
+                    exposure_auto_current_value = ASI_FALSE;
                 }
 #else
-                currentAutoExposure = exposure_day_auto ? ASI_TRUE : ASI_FALSE;
+                exposure_auto_current_value = exposure_day_auto ? ASI_TRUE : ASI_FALSE;
 #endif
                 brightness_current = brightness_target_day;
                 delay_current      = delay_day_ms;
                 binning_current        = binning_day;
 
-                // If we went from Night to Day, then currentExposure will be the last night
+                // If we went from Night to Day, then exposure_current_value will be the last night
                 // exposure so leave it if we're using auto-exposure so there's a seamless change from
                 // Night to Day, i.e., if the exposure was fine a minute ago it will likely be fine now.
                 // On the other hand, if this program just started or we're using manual exposures,
                 // use what the user specified.
-                if (numExposures == 0 || exposure_day_auto == ASI_FALSE)
+                if (exposures_counter == 0 || exposure_day_auto == ASI_FALSE)
                 {
-                    currentExposure = exposure_day_us;
+                    exposure_current_value = exposure_day_us;
                 }
                 else
                 {
-                    sprintf(text_buffer, "Using last night exposure of %'ld us (%'.2lf ms)\n", currentExposure,
-                            (float)currentExposure / US_IN_MS);
+                    sprintf(text_buffer, "Using last night exposure of %'ld us (%'.2lf ms)\n", exposure_current_value,
+                            (float)exposure_current_value / US_IN_MS);
                     displayDebugText(text_buffer, 2);
                 }
 #ifndef USE_HISTOGRAM
-                setControl(CamNum, ASI_EXPOSURE, currentExposure, currentAutoExposure);
+                setControl(camera_id, ASI_EXPOSURE, exposure_current_value, exposure_auto_current_value);
 #endif
-                setControl(CamNum, ASI_AUTO_MAX_EXP, cameraMaxAutoExposureUS / US_IN_MS, ASI_FALSE); // need ms
-                currentGain = gain_day; // must come before determineGainChange() below
+                setControl(camera_id, ASI_AUTO_MAX_EXP, exposure_camera_max_us / US_IN_MS, ASI_FALSE); // need ms
+                gain_current_value = gain_day; // must come before determineGainChange() below
                 if (gain_adjust_current)
                 {
                     // we did some nightime images so adjust gain
                     gain_changes_count = 0;
-                    gainChange     = determineGainChange(gain_day, gain_night);
+                    gain_change_amount     = determineGainChange(gain_day, gain_night);
                 }
                 else
                 {
-                    gainChange = 0;
+                    gain_change_amount = 0;
                 }
-                currentAutoGain = gain_day_auto ? ASI_TRUE : ASI_FALSE;
-                setControl(CamNum, ASI_GAIN, currentGain + gainChange, currentAutoGain);
+                gain_auto_current_value = gain_day_auto ? ASI_TRUE : ASI_FALSE;
+                setControl(camera_id, ASI_GAIN, gain_current_value + gain_change_amount, gain_auto_current_value);
                 // We don't have a separate asiDayMaxGain, so set to night one
-                setControl(CamNum, ASI_AUTO_MAX_GAIN, gain_night_max, ASI_FALSE);
+                setControl(camera_id, ASI_AUTO_MAX_GAIN, gain_night_max, ASI_FALSE);
             }
         }
         else // NIGHT
@@ -1266,53 +1266,53 @@ int main(int argc, char *argv[])
             // Setup the night time capture parameters
             if (exposure_night_auto == 1)
             {
-                currentAutoExposure = ASI_TRUE;
-                setControl(CamNum, ASI_AUTO_MAX_EXP, exposure_night_max_us, ASI_FALSE);
+                exposure_auto_current_value = ASI_TRUE;
+                setControl(camera_id, ASI_AUTO_MAX_EXP, exposure_night_max_us, ASI_FALSE);
                 printf("Saving auto exposed night images with delay of %'d ms (%d sec)\n\n", delay_night_ms,
                        delay_night_ms / MS_IN_SEC);
             }
             else
             {
-                currentAutoExposure = ASI_FALSE;
+                exposure_auto_current_value = ASI_FALSE;
                 printf("Saving %ds manual exposure night images with delay of %'d ms (%d sec)\n\n",
-                       (int)round(currentExposure / US_IN_SEC), delay_night_ms, delay_night_ms / MS_IN_SEC);
+                       (int)round(exposure_current_value / US_IN_SEC), delay_night_ms, delay_night_ms / MS_IN_SEC);
             }
 
             brightness_current = brightness_target_night;
             delay_current      = delay_night_ms;
             binning_current        = binning_night;
-            if (numExposures == 0 || exposure_night_auto == ASI_FALSE)
+            if (exposures_counter == 0 || exposure_night_auto == ASI_FALSE)
             {
-                currentExposure = exposure_night_us;
+                exposure_current_value = exposure_night_us;
             }
 #ifndef USE_HISTOGRAM
-            setControl(CamNum, ASI_EXPOSURE, currentExposure, currentAutoExposure);
+            setControl(camera_id, ASI_EXPOSURE, exposure_current_value, exposure_auto_current_value);
 #endif
-            currentGain = gain_night; // must come before determineGainChange() below
+            gain_current_value = gain_night; // must come before determineGainChange() below
             if (gain_adjust_current)
             {
                 // we did some daytime images so adjust gain
                 gain_changes_count = 0;
-                gainChange     = determineGainChange(gain_day, gain_night);
+                gain_change_amount     = determineGainChange(gain_day, gain_night);
             }
             else
             {
-                gainChange = 0;
+                gain_change_amount = 0;
             }
-            currentAutoGain = gain_night_auto ? ASI_TRUE : ASI_FALSE;
-            setControl(CamNum, ASI_GAIN, currentGain + gainChange, currentAutoGain);
-            setControl(CamNum, ASI_AUTO_MAX_GAIN, gain_night_max, ASI_FALSE);
+            gain_auto_current_value = gain_night_auto ? ASI_TRUE : ASI_FALSE;
+            setControl(camera_id, ASI_GAIN, gain_current_value + gain_change_amount, gain_auto_current_value);
+            setControl(camera_id, ASI_AUTO_MAX_GAIN, gain_night_max, ASI_FALSE);
         }
 
         // Adjusting variables for chosen binning
-        image_height     = originalHeight / binning_current;
-        image_width      = originalWidth / binning_current;
-        text_offset_from_left_px     = originalITextX / binning_current;
-        text_offset_from_top_px     = originalITextY / binning_current;
-        font_size   = originalFontsize / binning_current;
+        image_height     = sensor_height_px / binning_current;
+        image_width      = sensor_width_px / binning_current;
+        text_offset_from_left_px     = text_offset_from_left_pre_binning_px / binning_current;
+        text_offset_from_top_px     = text_offset_from_top_pre_binning_px / binning_current;
+        font_size   = font_size_pre_binning / binning_current;
         font_weight  = originalLinewidth / binning_current;
         buffer_size = image_width * image_height * bytesPerPixel((ASI_IMG_TYPE)image_type);
-        if (numExposures > 0 && binning_day != binning_night)
+        if (exposures_counter > 0 && binning_day != binning_night)
         {
             // No need to print after first time if the binning didn't change.
             sprintf(debugText, "Buffer size: %ld\n", buffer_size);
@@ -1332,14 +1332,14 @@ int main(int argc, char *argv[])
             pRgb.create(cv::Size(image_width, image_height), CV_8UC1);
         }
 
-        camera_return_code = ASISetROIFormat(CamNum, image_width, image_height, binning_current, (ASI_IMG_TYPE)image_type);
+        camera_return_code = ASISetROIFormat(camera_id, image_width, image_height, binning_current, (ASI_IMG_TYPE)image_type);
         if (camera_return_code)
         {
-            printf("ASISetROIFormat(%d, %dx%d, %d, %d) = %s\n", CamNum, image_width, image_height, binning_current, image_type,
+            printf("ASISetROIFormat(%d, %dx%d, %d, %d) = %s\n", camera_id, image_width, image_height, binning_current, image_type,
                    getRetCode(camera_return_code));
             closeUp(1);
         }
-        setControl(CamNum, ASI_BRIGHTNESS, brightness_current, ASI_FALSE); // ASI_BRIGHTNESS == ASI_OFFSET
+        setControl(camera_id, ASI_BRIGHTNESS, brightness_current, ASI_FALSE); // ASI_BRIGHTNESS == ASI_OFFSET
 
         // Here and below, indent sub-messages with "  > " so it's clear they go with the un-indented line.
         // This simply makes it easier to see things in the log file.
@@ -1349,17 +1349,17 @@ int main(int argc, char *argv[])
         // On the ASI178MC the shortest time is 10010 us; it may be higher on other cameras,
         // so use a higher value like 30,000 us to be safe.
         // Only do this once.
-        if (numExposures == 0)
+        if (exposures_counter == 0)
         {
             displayDebugText("===Taking 3 images to clear buffer...\n", 2);
             // turn off auto exposure
-            ASI_BOOL savedAutoExposure = currentAutoExposure;
-            currentAutoExposure        = ASI_FALSE;
+            ASI_BOOL exposure_auto_saved_value = exposure_auto_current_value;
+            exposure_auto_current_value        = ASI_FALSE;
             for (i = 1; i <= 3; i++)
             {
-                // don't count these as "real" exposures, so don't increment numExposures.
+                // don't count these as "real" exposures, so don't increment exposures_counter.
                 camera_return_code =
-                    takeOneExposure(CamNum, SHORT_EXPOSURE, pRgb.data, image_width, image_height, (ASI_IMG_TYPE)image_type);
+                    takeOneExposure(camera_id, SHORT_EXPOSURE, pRgb.data, image_width, image_height, (ASI_IMG_TYPE)image_type);
                 if (camera_return_code != ASI_SUCCESS)
                 {
                     sprintf(debugText, "buffer clearing exposure %d failed: %s\n", i, getRetCode(camera_return_code));
@@ -1371,21 +1371,21 @@ int main(int argc, char *argv[])
             if (error_count >= error_count_max)
             {
                 b_main    = false;
-                exitCode = 2;
+                exit_code = 2;
                 break;
             }
 
             // Restore correct exposure times and auto-exposure mode.
-            currentAutoExposure = savedAutoExposure;
-            setControl(CamNum, ASI_EXPOSURE, currentExposure, currentAutoExposure);
-            sprintf(debugText, "...DONE.  Reset exposure to %'ld us\n", currentExposure);
+            exposure_auto_current_value = exposure_auto_saved_value;
+            setControl(camera_id, ASI_EXPOSURE, exposure_current_value, exposure_auto_current_value);
+            sprintf(debugText, "...DONE.  Reset exposure to %'ld us\n", exposure_current_value);
             displayDebugText(debugText, 2);
             // END of bug code
         }
 
         int mean = 0;
 
-        while (b_main && lastDayOrNight == dayOrNight)
+        while (b_main && last_day_or_night == day_or_night)
         {
             // date/time is added to many log entries to make it easier to associate them
             // with an image (which has the date/time in the filename).
@@ -1401,17 +1401,17 @@ int main(int argc, char *argv[])
             if (time_show == 1)
                 sprintf(time_buffer, "%s", formatTime(t, time_format));
 
-            camera_return_code = takeOneExposure(CamNum, currentExposure, pRgb.data, image_width, image_height, (ASI_IMG_TYPE)image_type);
+            camera_return_code = takeOneExposure(camera_id, exposure_current_value, pRgb.data, image_width, image_height, (ASI_IMG_TYPE)image_type);
             if (camera_return_code == ASI_SUCCESS)
             {
                 error_count = 0;
-                numExposures++;
+                exposures_counter++;
 
 #ifdef USE_HISTOGRAM
                 int histogram_used = 0; // did we use the histogram method?
                 // We don't use this at night since the ZWO bug is only when it's light outside.
-                if (dayOrNight == "DAY" && exposure_day_auto && !darkframe &&
-                    currentExposure <= cameraMaxAutoExposureUS)
+                if (day_or_night == "DAY" && exposure_day_auto && !darkframe &&
+                    exposure_current_value <= exposure_camera_max_us)
                 {
                     int histogram_acceptable_min;
                     int histogram_acceptable_max;
@@ -1427,7 +1427,7 @@ int main(int argc, char *argv[])
                     // image (i.e., mean < 255).
                     // The intent is to keep track of the last OK exposure in case the final
                     // exposure we calculate is no good, we can go back to the last OK one.
-                    long last_OK_exposure = currentExposure;
+                    long last_OK_exposure = exposure_current_value;
 
                     int historgram_attempts_count = 0;
                     long exposure_new = 0;
@@ -1459,7 +1459,7 @@ int main(int argc, char *argv[])
                         // Adjustments of DEFAULT_BRIGHTNESS_TARGET up or down make the image this much darker/lighter.
                         // Don't want the max brightness to give pure white.
                         //xxx May have to play with this number, but it seems to work ok.
-                        float adjustmentAmountPerMultiple = 0.12; // 100 * this number is the percent to change
+                        float exposure_adjustment_amount_per_multiple = 0.12; // 100 * this number is the percent to change
 
                         // The amount doesn't change after being set, so only display once.
                         static int message_displayed = 0;
@@ -1470,7 +1470,7 @@ int main(int argc, char *argv[])
                             // If asiDayBrightnes < DEFAULT_BRIGHTNESS_TARGET the multiples_count will be negative,
                             // which is ok - it just means the multiplier will be less than 1.
                             multiples_count       = (brightness_target_day - DEFAULT_BRIGHTNESS_TARGET) / DEFAULT_BRIGHTNESS_TARGET;
-                            exposure_adjustment_pct = 1 + (multiples_count * adjustmentAmountPerMultiple);
+                            exposure_adjustment_pct = 1 + (multiples_count * exposure_adjustment_amount_per_multiple);
                             sprintf(text_buffer, "  > >>> Adjusting exposure %.1f%% for daybrightness\n",
                                     (exposure_adjustment_pct - 1) * 100);
                             displayDebugText(text_buffer, 2);
@@ -1491,15 +1491,15 @@ int main(int argc, char *argv[])
                         sprintf(text_buffer,
                                 "  > Attempt %i,  current exposure %'ld us,  mean %d,  temp min exposure %ld us,  "
                                 "exposure_max_temp %'ld us",
-                                histogram_attempts_count, currentExposure, mean, exposure_min_temp, exposure_max_temp);
+                                histogram_attempts_count, exposure_current_value, mean, exposure_min_temp, exposure_max_temp);
                         displayDebugText(text_buffer, 2);
 
                         std::string why; // Why did we adjust the exposure?  For debugging
                         int num = 0;
                         if (mean >= 254)
                         {
-                            exposure_new     = currentExposure * 0.4;
-                            exposure_max_temp = currentExposure - round_to_me_us;
+                            exposure_new     = exposure_current_value * 0.4;
+                            exposure_max_temp = exposure_current_value - round_to_me_us;
                             why             = "mean >= max";
                             num             = 254;
                         }
@@ -1508,48 +1508,48 @@ int main(int argc, char *argv[])
                             //  The code below takes into account how far off we are from an acceptable mean.
                             //  There's probably a simplier way to do this, like adjust by some multiple of
                             //  how far of we are.  That exercise is left to the reader...
-                            last_OK_exposure = currentExposure;
+                            last_OK_exposure = exposure_current_value;
                             if (mean < mean_low_threshold)
                             {
                                 // The cameras don't appear linear at this low of a level,
                                 // so really crank it up to get into the linear area.
-                                exposure_new     = currentExposure * 20;
-                                exposure_min_temp = currentExposure + round_to_me_us;
+                                exposure_new     = exposure_current_value * 20;
+                                exposure_min_temp = exposure_current_value + round_to_me_us;
                                 why             = "mean < mean_low_threshold";
                                 num             = mean_low_threshold;
                             }
                             else if (mean < mean_low)
                             {
-                                exposure_new     = currentExposure * 5;
-                                exposure_min_temp = currentExposure + round_to_me_us;
+                                exposure_new     = exposure_current_value * 5;
+                                exposure_min_temp = exposure_current_value + round_to_me_us;
                                 why             = "mean < mean_low";
                                 num             = mean_low;
                             }
                             else if (mean < (histogram_acceptable_min * 0.6))
                             {
-                                exposure_new     = currentExposure * 2.5;
-                                exposure_min_temp = currentExposure + round_to_me_us;
+                                exposure_new     = exposure_current_value * 2.5;
+                                exposure_min_temp = exposure_current_value + round_to_me_us;
                                 why             = "mean < (histogram_acceptable_min * 0.6)";
                                 num             = histogram_acceptable_min * 0.6;
                             }
                             else if (mean < histogram_acceptable_min)
                             {
-                                exposure_new     = currentExposure * 1.1;
-                                exposure_min_temp = currentExposure + round_to_me_us;
+                                exposure_new     = exposure_current_value * 1.1;
+                                exposure_min_temp = exposure_current_value + round_to_me_us;
                                 why             = "mean < histogram_acceptable_min";
                                 num             = histogram_acceptable_min;
                             }
                             else if (mean > (histogram_acceptable_max * 1.6))
                             {
-                                exposure_new     = currentExposure * 0.7;
-                                exposure_max_temp = currentExposure - round_to_me_us;
+                                exposure_new     = exposure_current_value * 0.7;
+                                exposure_max_temp = exposure_current_value - round_to_me_us;
                                 why             = "mean > (histogram_acceptable_max * 1.6)";
                                 num             = (histogram_acceptable_max * 1.6);
                             }
                             else if (mean > histogram_acceptable_max)
                             {
-                                exposure_new     = currentExposure * 0.9;
-                                exposure_max_temp = currentExposure - round_to_me_us;
+                                exposure_new     = exposure_current_value * 0.9;
+                                exposure_max_temp = exposure_current_value - round_to_me_us;
                                 why             = "mean > histogram_acceptable_max";
                                 num             = histogram_acceptable_max;
                             }
@@ -1559,23 +1559,23 @@ int main(int argc, char *argv[])
                         exposure_new = std::max(exposure_min_temp, exposure_new);
                         exposure_new = std::min(exposure_new, exposure_max_temp);
                         exposure_new = std::max(exposure_min_temp, exposure_new);
-                        exposure_new = std::min(exposure_new, cameraMaxAutoExposureUS);
+                        exposure_new = std::min(exposure_new, exposure_camera_max_us);
 
                         sprintf(text_buffer, ",  new exposure %'ld us\n", exposure_new);
                         displayDebugText(text_buffer, 2);
 
-                        if (exposure_new == currentExposure)
+                        if (exposure_new == exposure_current_value)
                         {
                             // We can't find a better exposure so stick with this one
                             // or the last OK one.  If the last exposure had a mean >= 254,
                             // use the most recent exposure that was OK.
                             if (mean >= 254 && 0)
                             { // xxxxxxxxxxxxxxxxxxxx This needs work so disabled
-                                currentExposure = last_OK_exposure;
+                                exposure_current_value = last_OK_exposure;
                                 sprintf(text_buffer, "  > !!! Resetting to last OK exposure of '%ld us\n",
-                                        currentExposure);
+                                        exposure_current_value);
                                 displayDebugText(text_buffer, 2);
-                                takeOneExposure(CamNum, currentExposure, pRgb.data, image_width, image_height,
+                                takeOneExposure(camera_id, exposure_current_value, pRgb.data, image_width, image_height,
                                                 (ASI_IMG_TYPE)image_type);
                                 computeHistogram(pRgb.data, image_width, image_height, (ASI_IMG_TYPE)image_type, histogram);
                                 mean = calculateHistogramMean(histogram);
@@ -1583,24 +1583,24 @@ int main(int argc, char *argv[])
                             break;
                         }
 
-                        currentExposure = exposure_new;
+                        exposure_current_value = exposure_new;
 
-                        sprintf(text_buffer, "  > !!! Retrying @ %'ld us because '%s (%d)'\n", currentExposure,
+                        sprintf(text_buffer, "  > !!! Retrying @ %'ld us because '%s (%d)'\n", exposure_current_value,
                                 why.c_str(), num);
                         displayDebugText(text_buffer, 2);
-                        takeOneExposure(CamNum, currentExposure, pRgb.data, image_width, image_height, (ASI_IMG_TYPE)image_type);
+                        takeOneExposure(camera_id, exposure_current_value, pRgb.data, image_width, image_height, (ASI_IMG_TYPE)image_type);
                         computeHistogram(pRgb.data, image_width, image_height, (ASI_IMG_TYPE)image_type, histogram);
                         mean = calculateHistogramMean(histogram);
                     }
                     if (histogram_attempts_count > histogram_attempts_count_max)
                     {
                         sprintf(text_buffer, "  > max histogram attempts reached - using exposure of %'ld us with mean %d\n",
-                                currentExposure, mean);
+                                exposure_current_value, mean);
                         displayDebugText(text_buffer, 2);
                     }
                     else if (histogram_attempts_count > 1)
                     {
-                        sprintf(text_buffer, "  > Using exposure of %'ld us with mean %d\n", currentExposure, mean);
+                        sprintf(text_buffer, "  > Using exposure of %'ld us with mean %d\n", exposure_current_value, mean);
                         displayDebugText(text_buffer, 2);
                     }
                     else if (histogram_attempts_count == 1)
@@ -1608,14 +1608,14 @@ int main(int argc, char *argv[])
                         sprintf(
                             text_buffer,
                             "  > Current exposure of %'ld us with mean %d was ok - no additional histogram attempts needed.\n",
-                            currentExposure, mean);
+                            exposure_current_value, mean);
                         displayDebugText(text_buffer, 2);
                     }
-                    exposure_actual_us = currentExposure;
+                    exposure_actual_us = exposure_current_value;
                 }
                 else
                 {
-                    currentExposure = exposure_actual_us;
+                    exposure_current_value = exposure_actual_us;
                 }
 #endif
                 // If darkframe mode is off, add overlay text to the image
@@ -1659,7 +1659,7 @@ int main(int argc, char *argv[])
                     if (exposure_show == 1)
                     {
                         // Indicate when the time to take the exposure is less than the reported exposure time
-                        if (exposure_actual_us == currentExposure)
+                        if (exposure_actual_us == exposure_current_value)
                         {
                             tmp_buffer2[0] = '\0';
                         }
@@ -1670,14 +1670,14 @@ int main(int argc, char *argv[])
                         if (exposure_actual_us >=
                             (1 * US_IN_SEC)) // display in seconds if >= 1 second, else in ms
                         {
-                            sprintf(tmp_buffer, "Exposure: %'.2f s%s", (float)currentExposure / US_IN_SEC, tmp_buffer2);
+                            sprintf(tmp_buffer, "Exposure: %'.2f s%s", (float)exposure_current_value / US_IN_SEC, tmp_buffer2);
                         }
                         else
                         {
-                            sprintf(tmp_buffer, "Exposure: %'.2f ms%s", (float)currentExposure / US_IN_MS, tmp_buffer2);
+                            sprintf(tmp_buffer, "Exposure: %'.2f ms%s", (float)exposure_current_value / US_IN_MS, tmp_buffer2);
                         }
                         // Indicate if in auto exposure mode.
-                        if (currentAutoExposure == ASI_TRUE)
+                        if (exposure_auto_current_value == ASI_TRUE)
                         {
                             strcat(tmp_buffer, " (auto)");
                         }
@@ -1692,15 +1692,15 @@ int main(int argc, char *argv[])
                         sprintf(tmp_buffer, "Gain: %ld", gain_actual);
 
                         // Indicate if in auto gain mode.
-                        if (currentAutoGain == ASI_TRUE)
+                        if (gain_auto_current_value == ASI_TRUE)
                         {
                             strcat(tmp_buffer, " (auto)");
                         }
                         // Indicate if in gain transition mode.
-                        if (gainChange != 0)
+                        if (gain_change_amount != 0)
                         {
                             char x[20];
-                            sprintf(x, " (adj: %+d)", gainChange);
+                            sprintf(x, " (adj: %+d)", gain_change_amount);
                             strcat(tmp_buffer, x);
                         }
 
@@ -1713,8 +1713,8 @@ int main(int argc, char *argv[])
                     {
                         // Determine if we need to change the gain on the next image.
                         // This must come AFTER the "gain_show" above.
-                        gainChange = determineGainChange(gain_day, gain_night);
-                        setControl(CamNum, ASI_GAIN, currentGain + gainChange, currentAutoGain);
+                        gain_change_amount = determineGainChange(gain_day, gain_night);
+                        setControl(camera_id, ASI_GAIN, gain_current_value + gain_change_amount, gain_auto_current_value);
                     }
 
                     if (brightness_show == 1)
@@ -1789,21 +1789,21 @@ int main(int argc, char *argv[])
                      **/
                     if (image_extra_text_file_name[0] != '\0')
                     {
-                        bool bUseExtraFile = true;
+                        bool extra_file_use = true;
                         // Display these messages every time, since it's possible the user will correct the
                         // issue while we're running.
                         if (access(image_extra_text_file_name, F_OK) == -1)
                         {
-                            bUseExtraFile = false;
+                            extra_file_use = false;
                             displayDebugText("  > *** WARNING: Extra Text File Does Not Exist So Ignoring It\n", 1);
                         }
                         else if (access(image_extra_text_file_name, R_OK) == -1)
                         {
                             displayDebugText("  > *** ERROR: Cannot Read From Extra Text File So Ignoring It\n", 1);
-                            bUseExtraFile = false;
+                            extra_file_use = false;
                         }
 
-                        if (bUseExtraFile)
+                        if (extra_file_use)
                         {
                             FILE *fp = fopen(image_extra_text_file_name, "r");
 
@@ -1815,10 +1815,10 @@ int main(int argc, char *argv[])
                                     struct stat buffer;
                                     if (stat(image_extra_text_file_name, &buffer) == 0)
                                     {
-                                        struct tm modifiedTime = *localtime(&buffer.st_mtime);
+                                        struct tm extra_file_modified_time = *localtime(&buffer.st_mtime);
 
                                         time_t now          = time(NULL);
-                                        double ageInSeconds = difftime(now, mktime(&modifiedTime));
+                                        double ageInSeconds = difftime(now, mktime(&extra_file_modified_time));
                                         sprintf(text_buffer, "  > Extra Text File (%s) Modified %.1f seconds ago",
                                                 image_extra_text_file_name, ageInSeconds);
                                         displayDebugText(text_buffer, 1);
@@ -1877,11 +1877,11 @@ int main(int argc, char *argv[])
                 }
 
 #ifndef USE_HISTOGRAM
-                if (currentAutoExposure == ASI_TRUE)
+                if (exposure_auto_current_value == ASI_TRUE)
                 {
                     // Retrieve the current Exposure for smooth transition to night time
                     // as long as auto-exposure is enabled during night time
-                    currentExposure = exposure_actual_us;
+                    exposure_current_value = exposure_actual_us;
                 }
 #endif
 
@@ -1911,24 +1911,24 @@ int main(int argc, char *argv[])
                     displayDebugText(text_buffer, 0);
                 }
 
-                if (gain_night_auto == 1 && dayOrNight == "NIGHT" && !darkframe)
+                if (gain_night_auto == 1 && day_or_night == "NIGHT" && !darkframe)
                 {
-                    ASIGetControlValue(CamNum, ASI_GAIN, &gain_actual, &bAuto);
+                    ASIGetControlValue(camera_id, ASI_GAIN, &gain_actual, &bAuto);
                     sprintf(text_buffer, "  > Auto Gain value: %ld\n", gain_actual);
                     displayDebugText(text_buffer, 1);
                 }
 
-                if (currentAutoExposure == ASI_TRUE)
+                if (exposure_auto_current_value == ASI_TRUE)
                 {
 #ifndef USE_HISTOGRAM
-                    if (dayOrNight == "DAY")
+                    if (day_or_night == "DAY")
                     {
-                        currentExposure = exposure_actual_us;
+                        exposure_current_value = exposure_actual_us;
                     }
 #endif
 
                     // Delay applied before next exposure
-                    if (dayOrNight == "NIGHT" && exposure_night_auto == 1 &&
+                    if (day_or_night == "NIGHT" && exposure_night_auto == 1 &&
                         exposure_actual_us < (exposure_night_max_us * US_IN_MS) && !darkframe)
                     {
                         // If using auto-exposure and the actual exposure is less than the max,
@@ -1985,15 +1985,15 @@ int main(int argc, char *argv[])
                 if (error_count >= error_count_max)
                 {
                     b_main    = false; // get out of inner and outer loop
-                    exitCode = 2;
+                    exit_code = 2;
                 }
             }
         }
-        if (lastDayOrNight == "NIGHT")
+        if (last_day_or_night == "NIGHT")
         {
             end_of_night = true;
         }
     }
 
-    closeUp(exitCode);
+    closeUp(exit_code);
 }
