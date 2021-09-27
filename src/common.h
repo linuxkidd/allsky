@@ -17,28 +17,31 @@
 #include "opencv.h"
 
 
-extern bool bDisplay;
-extern int gotSignal;
+extern bool b_display;
+extern bool notification_images;
 extern bool tty;
-extern bool notificationImages;
+extern int debug_level;
+extern int font_numbers[];
+extern int font_smoothing_options[3];
+extern int signal_received;
 extern void closeUp(int e);
-extern int debugLevel;
+extern char const *font_names[];
 
-timeval getTimeval();
+char const *yesNo(int flag);
 char *formatTime(timeval t, char const *tf);
 char *getTime(char const *tf);
 double timeDiff(int64 start, int64 end);
-std::string ReplaceAll(std::string str, const std::string& from, const std::string& to);
-std::string exec(const char *cmd);
-void *Display(void *params);
-int roundTo(int n, int roundTo);
-void IntHandle(int i);
-void displayDebugText(const char * text, int requiredLevel);
-void waitToFix(char const *msg);
-void calculateDayOrNight(const char *latitude, const char *longitude, const char *angle);
 int calculateTimeToNightTime(const char *latitude, const char *longitude, const char *angle);
-char const *yesNo(int flag);
+int roundTo(int n, int roundTo);
+std::string exec(const char *cmd);
+std::string ReplaceAll(std::string str, const std::string& from, const std::string& to);
+timeval getTimeval();
+void calculateDayOrNight(const char *latitude, const char *longitude, const char *angle);
+void displayDebugText(const char * text, int requiredLevel);
+void *Display(void *params);
+void IntHandle(int i);
 void printCredits();
 void printHelp();
+void waitToFix(char const *msg);
 
 #endif

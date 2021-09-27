@@ -28,19 +28,19 @@ using namespace std;
 //-------------------------------------------------------------------------------------------------------
 
 //char nameCnt[128];
-char const *fileName = "image.jpg";
-bool bMain = true;
-//ol bDisplay = false;
+char const *image_file_name = "image.jpg";
+bool b_main = true;
+//ol b_display = false;
 std::string dayOrNight;
 int numExposures = 0;	// how many valid pictures have we taken so far?
 
 // Some command-line and other option definitions needed outside of main():
 int tty				= 0;	// 1 if we're on a tty (i.e., called from the shell prompt).
 #define NOT_SET			  -1	// signifies something isn't set yet
-#define DEFAULT_NOTIFICATIONIMAGES 1
-int notificationImages		= DEFAULT_NOTIFICATIONIMAGES;
+#define DEFAULT_NOTIFICATION_IMAGES 1
+int notification_images		= DEFAULT_NOTIFICATION_IMAGES;
 
-//bool bSavingImg = false;
+//bool b_saving_image = false;
 
 //-------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------
@@ -97,7 +97,7 @@ void *Display(void *params)
 {
 	cv::Mat *pImg = (cv::Mat *)params;
 	cvNamedWindow("video", 1);
-	while (bDisplay)
+	while (b_display)
 	{
 		cvShowImage("video", pImg);
 		cvWaitKey(100);
@@ -121,7 +121,7 @@ void closeUp(int e)
 	// Unfortunately we don't know if the service is stopping us, or restarting us.
 	// If it was restarting there'd be no reason to copy a notification image since it
 	// will soon be overwritten.  Since we don't know, always copy it.
-	if (notificationImages) {
+	if (notification_images) {
 		system("scripts/copy_notification_image.sh NotRunning &");
 		// Sleep to give it a chance to print any messages so they (hopefully) get printed
 		// before the one below.  This is only so it looks nicer in the log file.
@@ -133,9 +133,9 @@ void closeUp(int e)
 }
 
 // Build capture command to capture the image from the HQ camera
-void RPiHQcapture(int asiAutoFocus, int asiAutoExposure, int asiExposure, int asiAutoGain, int asiAutoAWB, double asiGain, int bin, double asiWBR, double asiWBB, int asiRotation, int asiFlip, int asiGamma, int asiBrightness, int quality, const char* fileName, int time, int showDetails, const char* ImgText, int fontsize, int fontcolor, int background, int darkframe)
+void RPiHQcapture(int camera_auto_focus, int asiAutoExposure, int asiExposure, int asiAutoGain, int white_balance_auto, double asiGain, int bin, double white_balance_red, double white_balance_blue, int image_rotation, int image_flip, int gamma, int asiBrightness, int quality, const char* image_file_name, int time, int showDetails, const char* ImgText, int font_size, int font_color, int background, int darkframe)
 {
-	sprintf(debugText, "capturing image in file %s\n", fileName);
+	sprintf(debugText, "capturing image in file %s\n", image_file_name);
 	displayDebugText(debugText, 3);
 
 	// Ensure no rraspistill process is still running
@@ -167,7 +167,7 @@ time ( NULL );
 	std::strftime ( time_buffer, 40, "%d %B %Y %I:%M:%S %p", tm_ptr );
 */
 
-	ss << fileName;
+	ss << image_file_name;
 
 	// Define strings for raspistill command string and
 	string command = "nice raspistill --nopreview --thumb none --output " + ss.str() + " --burst -st ";
@@ -240,7 +240,7 @@ time ( NULL );
 	// Add exposure time setting to raspistill command string
 	command += shutter;
 
-	if (asiAutoFocus)
+	if (camera_auto_focus)
 	{
 		command += "--focus ";
 	}
@@ -279,33 +279,33 @@ time ( NULL );
 	string awb;
 
 	// Check if R and B component are given
-	if (!asiAutoAWB) {
-		if (asiWBR < 0.1)
+	if (!white_balance_auto) {
+		if (white_balance_red < 0.1)
 		{
-			asiWBR = 0.1;
+			white_balance_red = 0.1;
 		}
 
-		if (asiWBR > 10)
+		if (white_balance_red > 10)
 		{
-			asiWBR = 10;
+			white_balance_red = 10;
 		}
 
-		if (asiWBB < 0.1)
+		if (white_balance_blue < 0.1)
 		{
-			asiWBB = 0.1;
+			white_balance_blue = 0.1;
 		}
 
-		if (asiWBB > 10)
+		if (white_balance_blue > 10)
 		{
-			asiWBB = 10;
+			white_balance_blue = 10;
 		}
 
 		ss.str("");
-		ss << asiWBR;
+		ss << white_balance_red;
 		awb  = "--awb off --awbgains " + ss.str();
 
 		ss.str("");
-		ss << asiWBB;
+		ss << white_balance_blue;
 		awb += "," + ss.str() + " ";
 	}
 
@@ -319,16 +319,16 @@ time ( NULL );
 	command += awb;
 
 	// Check if rotation is at least 0 degrees
-	if (asiRotation != 0 && asiRotation != 90 && asiRotation != 180 && asiRotation != 270)
+	if (image_rotation != 0 && image_rotation != 90 && image_rotation != 180 && image_rotation != 270)
 	{
 		// Set rotation to 0 degrees
-		asiRotation = 0;
+		image_rotation = 0;
 	}
 
 	// check if rotation is needed
-	if (asiRotation!=0) {
+	if (image_rotation!=0) {
 		ss.str("");
-		ss << asiRotation;
+		ss << image_rotation;
 
 		// Add white balance setting to raspistill command string
 		command += "--rotation "  + ss.str() + " ";
@@ -338,12 +338,12 @@ time ( NULL );
 	string flip = "";
 
 	// Check if flip is selected
-	if (asiFlip == 1 || asiFlip == 3)
+	if (image_flip == 1 || image_flip == 3)
 	{
 		// Set horizontal flip
 		flip += "--hflip ";
 	}
-	if (asiFlip == 2 || asiFlip == 3)
+	if (image_flip == 2 || image_flip == 3)
 	{
 		// Set vertical flip
 		flip += "--vflip ";
@@ -356,20 +356,20 @@ time ( NULL );
 	string saturation;
 
 	// Check if gamma correction is set
-	if (asiGamma < -100)
+	if (gamma < -100)
 	{
-		asiGamma = -100;
+		gamma = -100;
 	}
 
-	if (asiGamma > 100)
+	if (gamma > 100)
 	{
-		asiGamma = 100;
+		gamma = 100;
 	}
 
-	if (asiGamma)
+	if (gamma)
 	{
 		ss.str("");
-		ss << asiGamma;
+		ss << gamma;
 		saturation = "--saturation "+ ss.str() + " ";
 	}
 
@@ -434,23 +434,23 @@ time ( NULL );
 			command += "-a \"" + ss.str() + "\" ";
 		}
 
-		if (fontsize < 6)
-			fontsize = 6;
+		if (font_size < 6)
+			font_size = 6;
 
-		if (fontsize > 160)
-			fontsize = 160;
+		if (font_size > 160)
+			font_size = 160;
 
 		ss.str("");
-		ss << fontsize;
+		ss << font_size;
 
-		if (fontcolor < 0)
-			fontcolor = 0;
+		if (font_color < 0)
+			font_color = 0;
 
-		if (fontcolor > 255)
-			fontcolor = 255;
+		if (font_color > 255)
+			font_color = 255;
 
 		std::stringstream C;
-		C  << std::setfill ('0') << std::setw(2) << std::hex << fontcolor;
+		C  << std::setfill ('0') << std::setw(2) << std::hex << font_color;
 
 		if (background < 0)
 			background = 0;
@@ -497,60 +497,60 @@ int main(int argc, char *argv[])
 	signal(SIGINT, IntHandle);
 	signal(SIGTERM, IntHandle);	// The service sends SIGTERM to end this program.
 /*
-	int fontname[] = { CV_FONT_HERSHEY_SIMPLEX,        CV_FONT_HERSHEY_PLAIN,         CV_FONT_HERSHEY_DUPLEX,
+	int font_numbers[] = { CV_FONT_HERSHEY_SIMPLEX,        CV_FONT_HERSHEY_PLAIN,         CV_FONT_HERSHEY_DUPLEX,
 					   CV_FONT_HERSHEY_COMPLEX,        CV_FONT_HERSHEY_TRIPLEX,       CV_FONT_HERSHEY_COMPLEX_SMALL,
 					   CV_FONT_HERSHEY_SCRIPT_SIMPLEX, CV_FONT_HERSHEY_SCRIPT_COMPLEX };
-	int fontnumber = 0;
+	int font_number = 0;
 	int iStrLen;
-	int iTextX = 15, iTextY = 25;
+	int text_offset_from_left_px = 15, text_offset_from_top_px = 25;
 */
 	char const *ImgText   = "";
 	char const *param     = "";
-	double fontsize       = 32;
+	double font_size       = 32;
 /*
-	int linewidth         = 1;
-	int outlinefont       = 0;
+	int font_weight         = 1;
+	int font_outline       = 0;
 */
-	int fontcolor         = 255;
+	int font_color         = 255;
 	int background        = 0;
 /*
-	int smallFontcolor[3] = { 0, 0, 255 };
-	int linetype[3]       = { CV_AA, 8, 4 };
-	int linenumber        = 0;
+	int font_color_small[3] = { 0, 0, 255 };
+	int font_smoothing_options[3]       = { CV_AA, 8, 4 };
+	int font_smoothing        = 0;
 	char buf[1024]    = { 0 };
-	char bufTime[128] = { 0 };
-	char bufTemp[128] = { 0 };
+	char time_buffer[128] = { 0 };
+	char tmp_buffer[128] = { 0 };
 */
 	int width             = 0;
 	int height            = 0;
-	int dayBin            = 1;
-	int nightBin          = 2;
-	int currentBin        = NOT_SET;
-	int asiDayExposure    = 32;	// milliseconds
-	int asiNightExposure  = 60000000;
+	int binning_day            = 1;
+	int binning_night          = 2;
+	int binning_current        = NOT_SET;
+	int exposure_day_us    = 32;	// milliseconds
+	int exposure_night_us  = 60000000;
 	int currentExposure   = NOT_SET;
-	int asiNightAutoExposure = 0;
-	int asiDayAutoExposure= 1;
+	int exposure_night_auto = 0;
+	int exposure_day_auto= 1;
 	int currentAutoExposure = 0;
-	int asiAutoFocus      = 0;
-	double asiNightGain   = 4;
-	double asiDayGain     = 1;
+	int camera_auto_focus      = 0;
+	double gain_night   = 4;
+	double gain_day     = 1;
 	double currentGain    = NOT_SET;
-	int asiNightAutoGain  = 0;
-	int asiDayAutoGain    = 0;
+	int gain_night_auto  = 0;
+	int gain_day_auto    = 0;
 	int currentAutoGain   = NOT_SET;
-	int asiAutoAWB        = 0;
-	int nightDelay        = 10;   // Delay in milliseconds. Default is 10ms
-	int dayDelay          = 15000; // Delay in milliseconds. Default is 15 seconds
-	int currentDelay      = NOT_SET;
-	double asiWBR         = 2.5;
-	double asiWBB         = 2;
-	int asiGamma          = 50;
-	int asiDayBrightness  = 50;
-	int asiNightBrightness= 50;
-	int currentBrightness = NOT_SET;
-	int asiFlip           = 0;
-	int asiRotation       = 0;
+	int white_balance_auto        = 0;
+	int delay_night_ms        = 10;   // Delay in milliseconds. Default is 10ms
+	int delay_day_ms          = 15000; // Delay in milliseconds. Default is 15 seconds
+	int delay_current      = NOT_SET;
+	double white_balance_red         = 2.5;
+	double white_balance_blue         = 2;
+	int gamma          = 50;
+	int brightness_target_day  = 50;
+	int brightness_target_night= 50;
+	int brightness_current = NOT_SET;
+	int image_flip           = 0;
+	int image_rotation       = 0;
 	char const *latitude  = "52.57N"; //GPS Coordinates of Limmen, Netherlands where this code was altered
 	char const *longitude = "4.70E";
 	char const *angle     = "0"; // angle of the sun with the horizon (0=sunset, -6=civil twilight, -12=nautical twilight, -18=astronomical twilight)
@@ -558,13 +558,13 @@ int main(int argc, char *argv[])
 	int time              = 0;
 	int showDetails       = 0;
 	int darkframe         = 0;
-	int daytimeCapture    = 0;
+	int capture_daytime    = 0;
 	int help              = 0;
 	int quality           = 90;
 
 	int i;
 	//id *retval;
-	bool endOfNight    = false;
+	bool end_of_night    = false;
 	//hread_t hthdSave = 0;
 
 	//-------------------------------------------------------------------------------------------------------
@@ -631,7 +631,7 @@ int main(int argc, char *argv[])
 /*
 			else if (strcmp(argv[i], "-type") == 0)
 			{
-				Image_type = atoi(argv[++i]);
+				image_type = atoi(argv[++i]);
 			}
 */
 			else if (strcmp(argv[i], "-quality") == 0)
@@ -641,71 +641,71 @@ int main(int argc, char *argv[])
 			// check for old names as well - the "||" part is the old name
 			else if (strcmp(argv[i], "-nightexposure") == 0 || strcmp(argv[i], "-exposure") == 0)
 			{
-				asiNightExposure = atoi(argv[++i]) * US_IN_MS;
+				exposure_night_us = atoi(argv[++i]) * US_IN_MS;
 			}
 
 			else if (strcmp(argv[i], "-nightautoexposure") == 0 || strcmp(argv[i], "-autoexposure") == 0)
 			{
-				asiNightAutoExposure = atoi(argv[++i]);
+				exposure_night_auto = atoi(argv[++i]);
 			}
 
 			else if (strcmp(argv[i], "-autofocus") == 0)
 			{
-				asiAutoFocus = atoi(argv[++i]);
+				camera_auto_focus = atoi(argv[++i]);
 			}
 			// xxxx Day gain isn't settable by the user.  Should it be?
 			else if (strcmp(argv[i], "-nightgain") == 0 || strcmp(argv[i], "-gain") == 0)
 			{
-				asiNightGain = atof(argv[++i]);
+				gain_night = atof(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-nightautogain") == 0 || strcmp(argv[i], "-autogain") == 0)
 			{
-				asiNightAutoGain = atoi(argv[++i]);
+				gain_night_auto = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-gamma") == 0)
 			{
-				asiGamma = atoi(argv[++i]);
+				gamma = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-brightness") == 0)// old "-brightness" applied to day and night
 			{
-				asiDayBrightness = atoi(argv[++i]);
-				asiNightBrightness = asiDayBrightness;
+				brightness_target_day = atoi(argv[++i]);
+				brightness_target_night = brightness_target_day;
 			}
 			else if (strcmp(argv[i], "-daybrightness") == 0)
 			{
-				asiDayBrightness = atoi(argv[++i]);
+				brightness_target_day = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-nightbrightness") == 0)
 			{
-				asiNightBrightness = atoi(argv[++i]);
+				brightness_target_night = atoi(argv[++i]);
 			}
  			else if (strcmp(argv[i], "-daybin") == 0)
             		{
-                		dayBin = atoi(argv[++i]);
+                		binning_day = atoi(argv[++i]);
             		}
 			else if (strcmp(argv[i], "-nightbin") == 0 || strcmp(argv[i], "-bin") == 0)
 			{
-				nightBin = atoi(argv[++i]);
+				binning_night = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-nightdelay") == 0 || strcmp(argv[i], "-delay") == 0)
 			{
-				nightDelay = atoi(argv[++i]);
+				delay_night_ms = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-daydelay") == 0 || strcmp(argv[i], "-daytimeDelay") == 0)
 			{
-				dayDelay = atoi(argv[++i]);
+				delay_day_ms = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-awb") == 0)
 			{
-				asiAutoAWB = atoi(argv[++i]);
+				white_balance_auto = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-wbr") == 0)
 			{
-				asiWBR = atof(argv[++i]);
+				white_balance_red = atof(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-wbb") == 0)
 			{
-				asiWBB = atof(argv[++i]);
+				white_balance_blue = atof(argv[++i]);
 			}
 
 			// Check for text parameter
@@ -756,71 +756,71 @@ int main(int argc, char *argv[])
 /*
 			else if (strcmp(argv[i], "-textx") == 0)
 			{
-				iTextX = atoi(argv[++i]);
+				text_offset_from_left_px = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-texty") == 0)
 			{
-				iTextY = atoi(argv[++i]);
+				text_offset_from_top_px = atoi(argv[++i]);
 			}
-			else if (strcmp(argv[i], "-fontname") == 0)
+			else if (strcmp(argv[i], "-font_numbers") == 0)
 			{
-				fontnumber = atoi(argv[++i]);
+				font_number = atoi(argv[++i]);
 			}
 */
 			else if (strcmp(argv[i], "-background") == 0)
 			{
 				background = atoi(argv[++i]);
 			}
-			else if (strcmp(argv[i], "-fontcolor") == 0)
+			else if (strcmp(argv[i], "-font_color") == 0)
 			{
-				fontcolor = atoi(argv[++i]);
+				font_color = atoi(argv[++i]);
 			}
 /*
-			else if (strcmp(argv[i], "-smallfontcolor") == 0)
+			else if (strcmp(argv[i], "-smallfont_color") == 0)
 			{
 				if (argumentsQuoted)
 				{
-					sscanf(argv[++i], "%d %d %d", &smallFontcolor[0], &smallFontcolor[1], &smallFontcolor[2]);
+					sscanf(argv[++i], "%d %d %d", &font_color_small[0], &font_color_small[1], &font_color_small[2]);
 				}
 				else
 				{
-					smallFontcolor[0] = atoi(argv[++i]);
-					smallFontcolor[1] = atoi(argv[++i]);
-					smallFontcolor[2] = atoi(argv[++i]);
+					font_color_small[0] = atoi(argv[++i]);
+					font_color_small[1] = atoi(argv[++i]);
+					font_color_small[2] = atoi(argv[++i]);
 				}
 			}
 			else if (strcmp(argv[i], "-fonttype") == 0)
 			{
-				linenumber = atoi(argv[++i]);
+				font_smoothing = atoi(argv[++i]);
 			}
 */
-			else if (strcmp(argv[i], "-fontsize") == 0)
+			else if (strcmp(argv[i], "-font_size") == 0)
 			{
-				fontsize = atof(argv[++i]);
+				font_size = atof(argv[++i]);
 			}
 /*
 			else if (strcmp(argv[i], "-fontline") == 0)
 			{
-				linewidth = atoi(argv[++i]);
+				font_weight = atoi(argv[++i]);
 			}
-			else if (strcmp(argv[i], "-outlinefont") == 0)
+			else if (strcmp(argv[i], "-font_outline") == 0)
 			{
-				outlinefont = atoi(argv[++i]);
-				if (outlinefont != 0)
-					outlinefont = 1;
+				font_outline = atoi(argv[++i]);
+				if (font_outline != 0)
+					font_outline = 1;
 			}
 */
 			else if (strcmp(argv[i], "-rotation") == 0)
 			{
-				asiRotation = atoi(argv[++i]);
+				image_rotation = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-flip") == 0)
 			{
-				asiFlip = atoi(argv[++i]);
+				image_flip = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-filename") == 0)
 			{
-				fileName = (argv[++i]);
+				image_file_name = (argv[++i]);
 			}
 			else if (strcmp(argv[i], "-latitude") == 0)
 			{
@@ -840,7 +840,7 @@ int main(int argc, char *argv[])
 				preview = atoi(argv[++i]);
 			}
 */
-			else if (strcmp(argv[i], "-showTime") == 0 || strcmp(argv[i], "-time") == 0)
+			else if (strcmp(argv[i], "-time_show") == 0 || strcmp(argv[i], "-time") == 0)
 			{
 				time = atoi(argv[++i]);
 			}
@@ -855,11 +855,11 @@ int main(int argc, char *argv[])
 			}
 			else if (strcmp(argv[i], "-daytime") == 0)
 			{
-				daytimeCapture = atoi(argv[++i]);
+				capture_daytime = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-notificationimages") == 0)
 			{
-				notificationImages = atoi(argv[++i]);
+				notification_images = atoi(argv[++i]);
 			}
 			else if (strcmp(argv[i], "-tty") == 0)
 			{
@@ -897,12 +897,12 @@ int main(int argc, char *argv[])
 			   "\"Text Overlay\"\n");
 //		printf(" -textx                             - Default = 15   - Text Placement Horizontal from LEFT in Pixels\n");
 //		printf(" -texty = Text Y                    - Default = 25   - Text Placement Vertical from TOP in Pixels\n");
-//		printf(" -fontname = Font Name              - Default = 0    - Font Types (0-7), Ex. 0 = simplex, 4 = triplex, 7 = script\n");
-		printf(" -fontcolor = Font Color            - Default = 255  - Text gray scale color  (0 - 255)\n");
+//		printf(" -font_numbers = Font Name              - Default = 0    - Font Types (0-7), Ex. 0 = simplex, 4 = triplex, 7 = script\n");
+		printf(" -font_color = Font Color            - Default = 255  - Text gray scale color  (0 - 255)\n");
 		printf(" -background= Font Color            - Default = 0  - Backgroud gray scale color (0 - 255)\n");
-//		printf(" -smallfontcolor = Small Font Color - Default = 0 0 255  - Text red (BGR)\n");
+//		printf(" -smallfont_color = Small Font Color - Default = 0 0 255  - Text red (BGR)\n");
 //		printf(" -fonttype = Font Type              - Default = 0    - Font Line Type,(0-2), 0 = AA, 1 = 8, 2 = 4\n");
-		printf(" -fontsize                          - Default = 32  - Text Font Size (range 6 - 160, 32 default)\n");
+		printf(" -font_size                          - Default = 32  - Text Font Size (range 6 - 160, 32 default)\n");
 //		printf(" -fontline                          - Default = 1    - Text Font Line Thickness\n");
 		printf("\n");
 		printf("\n");
@@ -936,7 +936,7 @@ int main(int argc, char *argv[])
 	{
 		// To avoid overwriting the optional notification inage with the dark image,
 		// during dark frames we use a different file name.
-		fileName = "dark.jpg";
+		image_file_name = "dark.jpg";
 	}
 
 	//-------------------------------------------------------------------------------------------------------
@@ -946,34 +946,34 @@ int main(int argc, char *argv[])
 	printf("\nCapture Settings:\n");
 	printf(" Resolution (before any binning): %dx%d\n", width, height);
 	printf(" Quality: %d\n", quality);
-	printf(" Exposure (night): %1.0fms\n", round(asiNightExposure / US_IN_MS));
-	printf(" Auto Exposure (night): %s\n", yesNo(asiNightAutoExposure));
-	printf(" Auto Focus: %s\n", yesNo(asiAutoFocus));
-	printf(" Gain (night): %1.2f\n", asiNightGain);
-	printf(" Auto Gain (night): %s\n", yesNo(asiNightAutoGain));
-	printf(" Brightness (day): %d\n", asiDayBrightness);
-	printf(" Brightness (night): %d\n", asiNightBrightness);
-	printf(" Gamma: %d\n", asiGamma);
-	printf(" Auto White Balance: %s\n", yesNo(asiAutoAWB));
-	printf(" WB Red: %1.2f\n", asiWBR);
-	printf(" WB Blue: %1.2f\n", asiWBB);
-	printf(" Binning (day): %d\n", dayBin);
-	printf(" Binning (night): %d\n", nightBin);
-	printf(" Delay (day): %dms\n", dayDelay);
-	printf(" Delay (night): %dms\n", nightDelay);
+	printf(" Exposure (night): %1.0fms\n", round(exposure_night_us / US_IN_MS));
+	printf(" Auto Exposure (night): %s\n", yesNo(exposure_night_auto));
+	printf(" Auto Focus: %s\n", yesNo(camera_auto_focus));
+	printf(" Gain (night): %1.2f\n", gain_night);
+	printf(" Auto Gain (night): %s\n", yesNo(gain_night_auto));
+	printf(" Brightness (day): %d\n", brightness_target_day);
+	printf(" Brightness (night): %d\n", brightness_target_night);
+	printf(" Gamma: %d\n", gamma);
+	printf(" Auto White Balance: %s\n", yesNo(white_balance_auto));
+	printf(" WB Red: %1.2f\n", white_balance_red);
+	printf(" WB Blue: %1.2f\n", white_balance_blue);
+	printf(" Binning (day): %d\n", binning_day);
+	printf(" Binning (night): %d\n", binning_night);
+	printf(" Delay (day): %dms\n", delay_day_ms);
+	printf(" Delay (night): %dms\n", delay_night_ms);
 	printf(" Text Overlay: %s\n", ImgText);
-//	printf(" Text Position: %dpx left, %dpx top\n", iTextX, iTextY);
-//	printf(" Font Name:  %d\n", fontname[fontnumber]);
-	printf(" Font Color: %d\n", fontcolor);
+//	printf(" Text Position: %dpx left, %dpx top\n", text_offset_from_left_px, text_offset_from_top_px);
+//	printf(" Font Name:  %d\n", font_numbers[font_number]);
+	printf(" Font Color: %d\n", font_color);
 	printf(" Font Background Color: %d\n", background);
-//	printf(" Small Font Color: %d , %d, %d\n", smallFontcolor[0], smallFontcolor[1], smallFontcolor[2]);
-//	printf(" Font Line Type: %d\n", linetype[linenumber]);
-	printf(" Font Size: %1.1f\n", fontsize);
-//	printf(" Font Line: %d\n", linewidth);
-//	printf(" Outline Font : %s\n", yesNo(outlinefont));
-	printf(" Rotation: %d\n", asiRotation);
-	printf(" Flip Image: %d\n", asiFlip);
-	printf(" Filename: %s\n", fileName);
+//	printf(" Small Font Color: %d , %d, %d\n", font_color_small[0], font_color_small[1], font_color_small[2]);
+//	printf(" Font Line Type: %d\n", font_smoothing_options[font_smoothing]);
+	printf(" Font Size: %1.1f\n", font_size);
+//	printf(" Font Line: %d\n", font_weight);
+//	printf(" Outline Font : %s\n", yesNo(font_outline));
+	printf(" Rotation: %d\n", image_rotation);
+	printf(" Flip Image: %d\n", image_flip);
+	printf(" Filename: %s\n", image_file_name);
 	printf(" Latitude: %s\n", latitude);
 	printf(" Longitude: %s\n", longitude);
 	printf(" Sun Elevation: %s\n", angle);
@@ -981,7 +981,7 @@ int main(int argc, char *argv[])
 	printf(" Time: %s\n", yesNo(time));
 	printf(" Show Details: %s\n", yesNo(showDetails));
 	printf(" Darkframe: %s\n", yesNo(darkframe));
-	printf(" Notification Images: %s\n", yesNo(notificationImages));
+	printf(" Notification Images: %s\n", yesNo(notification_images));
 
 	// Show selected camera type
 	printf(" Camera: Raspberry Pi HQ camera\n");
@@ -992,7 +992,7 @@ int main(int argc, char *argv[])
 	std::string lastDayOrNight;
 	int displayedNoDaytimeMsg = 0; // Have we displayed "not taking picture during day" message, if applicable?
 
-	while (bMain)
+	while (b_main)
 	{
 		printf("\n");
 
@@ -1005,7 +1005,7 @@ int main(int argc, char *argv[])
 		lastDayOrNight = dayOrNight;
 
 // Next lines are present for testing purposes
-sprintf(debugText, "Daytimecapture: %d\n", daytimeCapture);
+sprintf(debugText, "Daytimecapture: %d\n", capture_daytime);
 displayDebugText(debugText, 3);
 
 		printf("\n");
@@ -1016,39 +1016,39 @@ displayDebugText(debugText, 3);
 			// nightime gain, delay, exposure, and brightness to mimic a nightime shot.
 			currentAutoExposure = 0;
 			currentAutoGain = 0;
-			currentGain = asiNightGain;
-			currentDelay = nightDelay;
-			currentExposure = asiNightExposure;
-			currentBrightness = asiNightBrightness;
-			currentBin = nightBin;
+			currentGain = gain_night;
+			delay_current = delay_night_ms;
+			currentExposure = exposure_night_us;
+			brightness_current = brightness_target_night;
+			binning_current = binning_night;
 
  			displayDebugText("Taking dark frames...\n", 0);
-			if (notificationImages) {
+			if (notification_images) {
 				system("scripts/copy_notification_image.sh DarkFrames &");
 			}
 		}
 
 		else if (dayOrNight == "DAY")
 		{
-			if (endOfNight == true)		// Execute end of night script
+			if (end_of_night == true)		// Execute end of night script
 			{
-				system("scripts/endOfNight.sh &");
+				system("scripts/end_of_night.sh &");
 
 				// Reset end of night indicator
-				endOfNight = false;
+				end_of_night = false;
 
 				displayedNoDaytimeMsg = 0;
 			}
 
 // Next line is present for testing purposes
-// daytimeCapture = 1;
+// capture_daytime = 1;
 
 			// Check if images should not be captured during day-time
-			if (daytimeCapture != 1)
+			if (capture_daytime != 1)
 			{
 				// Only display messages once a day.
 				if (displayedNoDaytimeMsg == 0) {
-					if (notificationImages) {
+					if (notification_images) {
 						system("scripts/copy_notification_image.sh CameraOffDuringDay &");
 					}
 					sprintf(debugText, "It's daytime... we're not saving images.\n%s\n",
@@ -1083,16 +1083,16 @@ displayDebugText(debugText, 3);
 				displayDebugText(debugText, 0);
 
 				// set daytime settings
-				currentAutoExposure = asiDayAutoExposure;
-				currentAutoGain = asiDayAutoGain;
-				currentGain = asiDayGain;
-				currentDelay = dayDelay;
-				currentExposure = asiDayExposure;
-				currentBrightness = asiDayBrightness;
-				currentBin = dayBin;
+				currentAutoExposure = exposure_day_auto;
+				currentAutoGain = gain_day_auto;
+				currentGain = gain_day;
+				delay_current = delay_day_ms;
+				currentExposure = exposure_day_us;
+				brightness_current = brightness_target_day;
+				binning_current = binning_day;
 
 				// Inform user
-				sprintf(debugText, "Saving %d ms exposed images with %d seconds delays in between...\n\n", currentExposure * US_IN_MS, currentDelay / MS_IN_SEC);
+				sprintf(debugText, "Saving %d ms exposed images with %d seconds delays in between...\n\n", currentExposure * US_IN_MS, delay_current / MS_IN_SEC);
 				displayDebugText(debugText, 0);
 			}
 		}
@@ -1108,26 +1108,26 @@ displayDebugText(debugText, 3);
 			displayDebugText(debugText, 0);
 
 			// Set nighttime settings
-			currentAutoExposure = asiNightAutoExposure;
-			currentAutoGain = asiNightAutoGain;
-			currentGain = asiNightGain;
-			currentDelay = nightDelay;
-			currentExposure = asiNightExposure;
-			currentBrightness = asiNightBrightness;
-			currentBin = nightBin;
+			currentAutoExposure = exposure_night_auto;
+			currentAutoGain = gain_night_auto;
+			currentGain = gain_night;
+			delay_current = delay_night_ms;
+			currentExposure = exposure_night_us;
+			brightness_current = brightness_target_night;
+			binning_current = binning_night;
 
 			// Inform user
-			sprintf(debugText, "Saving %d seconds exposure images with %d ms delays in between...\n\n", (int)round(currentExposure / US_IN_SEC), nightDelay);
+			sprintf(debugText, "Saving %d seconds exposure images with %d ms delays in between...\n\n", (int)round(currentExposure / US_IN_SEC), delay_night_ms);
 			displayDebugText(debugText, 0);
 		}
 
 		// Adjusting variables for chosen binning
-		width  = iMaxWidth / currentBin;
-		height = iMaxHeight / currentBin;
-//		iTextX    = iTextX / currentBin;
-//		iTextY    = iTextY / currentBin;
-//		fontsize  = fontsize / currentBin;
-//		linewidth = linewidth / currentBin;
+		width  = iMaxWidth / binning_current;
+		height = iMaxHeight / binning_current;
+//		text_offset_from_left_px    = text_offset_from_left_px / binning_current;
+//		text_offset_from_top_px    = text_offset_from_top_px / binning_current;
+//		font_size  = font_size / binning_current;
+//		font_weight = font_weight / binning_current;
 
 		// Inform user
 		if (tty)
@@ -1136,14 +1136,14 @@ displayDebugText(debugText, 3);
 			printf("Stop the allsky service to end this process.\n\n");
 
 		// Wait for switch day time -> night time or night time -> day time
-		while (bMain && lastDayOrNight == dayOrNight)
+		while (b_main && lastDayOrNight == dayOrNight)
 		{
 			// Inform user
 			sprintf(debugText, "Capturing & saving image...\n");
 			displayDebugText(debugText, 0);
 
 			// Capture and save image
-			RPiHQcapture(asiAutoFocus, currentAutoExposure, currentExposure, currentAutoGain, asiAutoAWB, currentGain, currentBin, asiWBR, asiWBB, asiRotation, asiFlip, asiGamma, currentBrightness, quality, fileName, time, showDetails, ImgText, fontsize, fontcolor, background, darkframe);
+			RPiHQcapture(camera_auto_focus, currentAutoExposure, currentExposure, currentAutoGain, white_balance_auto, currentGain, binning_current, white_balance_red, white_balance_blue, image_rotation, image_flip, gamma, brightness_current, quality, image_file_name, time, showDetails, ImgText, font_size, font_color, background, darkframe);
 
 			// Check for night time
 			if (dayOrNight == "NIGHT")
@@ -1158,11 +1158,11 @@ displayDebugText(debugText, 3);
 			}
 
 			// Inform user
-			sprintf(debugText, "Capturing & saving %s done, now wait %d seconds...\n", darkframe ? "dark frame" : "image", currentDelay / MS_IN_SEC);
+			sprintf(debugText, "Capturing & saving %s done, now wait %d seconds...\n", darkframe ? "dark frame" : "image", delay_current / MS_IN_SEC);
 			displayDebugText(debugText, 0);
 
 			// Sleep for a moment
-			usleep(currentDelay * US_IN_MS);
+			usleep(delay_current * US_IN_MS);
 
 			// Check for day or night based on location and angle
 			calculateDayOrNight(latitude, longitude, angle);
@@ -1213,7 +1213,7 @@ displayDebugText(debugText, 3);
 		if (lastDayOrNight == "NIGHT")
 		{
 			// Flag end of night processing is needed
-			endOfNight = true;
+			end_of_night = true;
 		}
 	}
 

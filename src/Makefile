@@ -146,7 +146,7 @@ endif
 	@install -D -m 0644 autostart/allsky /etc/logrotate.d/
 	@install -D -m 0644 autostart/allsky.conf /etc/rsyslog.d/
 	@echo `date +%F\ %R:%S` Setting up home environment variable...
-	@echo "export ALLSKY_HOME=/home/pi/$(SUDO_USER)" > /etc/profile.d/allsky.sh
+	@echo "export ALLSKY_HOME=$$PWD" > /etc/profile.d/allsky.sh
 ifeq ($(wildcard settings_ZWO.json),)
 	@echo `date +%F\ %R:%S` Copying default settings_ZWO.json
 	@install -m 0644 -o $(SUDO_USER) -g $(SUDO_USER) settings_ZWO.json.repo settings_ZWO.json
