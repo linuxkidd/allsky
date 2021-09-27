@@ -156,18 +156,18 @@ int calculateTimeToNightTime(const char *latitude, const char *longitude, const 
     secs = (h * 60 * 60) + (m * 60);
 
     char *now = getTime("%H:%M");
-    int hNow = 0, mNow = 0, secsNow;
-    sscanf(now, "%d:%d", &hNow, &mNow);
-    secsNow = (hNow * 60 * 60) + (mNow * 60);
+    int now_hour = 0, now_minute = 0, now_seconds;
+    sscanf(now, "%d:%d", &now_hour, &now_minute);
+    now_seconds = (now_hour * 60 * 60) + (now_minute * 60);
 
     // Handle the (probably rare) case where nighttime is tomorrow
-    if (secsNow > secs)
+    if (now_seconds > secs)
     {
-        return (secs + (60 * 60 * 24) - secsNow);
+        return (secs + (60 * 60 * 24) - now_seconds);
     }
     else
     {
-        return (secs - secsNow);
+        return (secs - now_seconds);
     }
 }
 

@@ -133,7 +133,7 @@ void closeUp(int e)
 }
 
 // Build capture command to capture the image from the HQ camera
-void RPiHQcapture(int camera_auto_focus, int asiAutoExposure, int camrea_exposure, int asiAutoGain, int white_balance_auto, double camrea_gain, int bin, double white_balance_red, double white_balance_blue, int image_rotation, int image_flip, int gamma, int image_brightness, int quality, const char* image_file_name, int time, int showDetails, const char* ImgText, int font_size, int font_color, int background, int darkframe)
+void RPiHQcapture(int camera_auto_focus, int asiAutoExposure, int camrea_exposure, int asiAutoGain, int white_balance_auto, double camrea_gain, int bin, double white_balance_red, double white_balance_blue, int image_rotation, int image_flip, int gamma, int image_brightness, int quality, const char* image_file_name, int time, int showDetails, const char* image_text, int font_size, int font_color, int background, int darkframe)
 {
 	sprintf(debugText, "capturing image in file %s\n", image_file_name);
 	displayDebugText(debugText, 3);
@@ -427,10 +427,10 @@ time ( NULL );
 		if (time==1)
 			command += "-a 1036 ";
 
-		if (strcmp(ImgText, "") != 0) {
+		if (strcmp(image_text, "") != 0) {
 			ss.str("");
-	//		ss << ReplaceAll(ImgText, std::string(" "), std::string("_"));
-			ss << ImgText;
+	//		ss << ReplaceAll(image_text, std::string(" "), std::string("_"));
+			ss << image_text;
 			command += "-a \"" + ss.str() + "\" ";
 		}
 
@@ -504,7 +504,7 @@ int main(int argc, char *argv[])
 	int iStrLen;
 	int text_offset_from_left_px = 15, text_offset_from_top_px = 25;
 */
-	char const *ImgText   = "";
+	char const *image_text   = "";
 	char const *param     = "";
 	double font_size       = 32;
 /*
@@ -713,7 +713,7 @@ int main(int argc, char *argv[])
 			{
 				if (argumentsQuoted)
 				{
-					ImgText = argv[++i];
+					image_text = argv[++i];
 				}
 				else
 				{
@@ -733,7 +733,7 @@ int main(int argc, char *argv[])
 					while (strncmp(param, "-", 1) != 0)
 					{
 						// Copy Text into buffer
-						strncpy(buffer, ImgText, sizeof(buffer));
+						strncpy(buffer, image_text, sizeof(buffer));
 
 						// Add a space after each word (skip for first word)
 						if (j)
@@ -742,8 +742,8 @@ int main(int argc, char *argv[])
 						// Add parameter
 						strncat(buffer, param, sizeof(buffer));
 
-						// Copy buffer into ImgText variable
-						ImgText = buffer;
+						// Copy buffer into image_text variable
+						image_text = buffer;
 
 						// Flag first word is entered
 						j = 1;
@@ -926,10 +926,10 @@ int main(int argc, char *argv[])
 
 	int image_width_max = 4096;
 	int image_height_max = 3040;
-	double pixelSize = 1.55;
+	double pixel_size_microns = 1.55;
 
 	printf("- Resolution: %dx%d\n", image_width_max, image_height_max);
-	printf("- Pixel Size: %1.2fmicrons\n", pixelSize);
+	printf("- Pixel Size: %1.2fmicrons\n", pixel_size_microns);
 	printf("- Supported Bin: 1x, 2x and 3x\n");
 
 	if (darkframe)
@@ -961,7 +961,7 @@ int main(int argc, char *argv[])
 	printf(" Binning (night): %d\n", binning_night);
 	printf(" Delay (day): %dms\n", delay_day_ms);
 	printf(" Delay (night): %dms\n", delay_night_ms);
-	printf(" Text Overlay: %s\n", ImgText);
+	printf(" Text Overlay: %s\n", image_text);
 //	printf(" Text Position: %dpx left, %dpx top\n", text_offset_from_left_px, text_offset_from_top_px);
 //	printf(" Font Name:  %d\n", font_numbers[font_number]);
 	printf(" Font Color: %d\n", font_color);
@@ -1057,8 +1057,8 @@ displayDebugText(debugText, 3);
 					message_no_daytime_shown = 1;
 
 					// sleep until almost nighttime, then wake up and sleep a short time
-					int secsTillNight = calculateTimeToNightTime(latitude, longitude, angle);
-					sleep(secsTillNight - 10);
+					int seconds_till_night = calculateTimeToNightTime(latitude, longitude, angle);
+					sleep(seconds_till_night - 10);
 				}
 				else
 				{
@@ -1143,7 +1143,7 @@ displayDebugText(debugText, 3);
 			displayDebugText(debugText, 0);
 
 			// Capture and save image
-			RPiHQcapture(camera_auto_focus, exposure_auto_current_value, exposure_current_value, gain_auto_current_value, white_balance_auto, gain_current_value, binning_current, white_balance_red, white_balance_blue, image_rotation, image_flip, gamma, brightness_current, quality, image_file_name, time, showDetails, ImgText, font_size, font_color, background, darkframe);
+			RPiHQcapture(camera_auto_focus, exposure_auto_current_value, exposure_current_value, gain_auto_current_value, white_balance_auto, gain_current_value, binning_current, white_balance_red, white_balance_blue, image_rotation, image_flip, gamma, brightness_current, quality, image_file_name, time, showDetails, image_text, font_size, font_color, background, darkframe);
 
 			// Check for night time
 			if (day_or_night == "NIGHT")

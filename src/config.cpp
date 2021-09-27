@@ -113,7 +113,7 @@ int parse_ini()
     delay_day_ms                = reader.GetInteger("capture.day",                    "delay", DEFAULT_DELAY_DAY_MS);
 
     // Overlay Options:
-    ImgText                 = reader.GetString(  "overlay",                        "text", "").c_str();
+    image_text                 = reader.GetString(  "overlay",                        "text", "").c_str();
     image_extra_text_file_name            = reader.GetString(  "overlay",             "text_extra_file", "").c_str();
     extra_file_age            = reader.GetInteger( "overlay",   "text_extra_file_max_age_s", 0);
     text_line_height_px         = reader.GetInteger( "overlay",         "text_line_height_px", DEFAULT_TEXT_LINE_HEIGHT_PX);

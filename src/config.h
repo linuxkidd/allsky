@@ -100,7 +100,7 @@ extern char const *angle;
 extern char const *image_file_name;
 extern char const *font_names[];
 extern char const *image_extra_text_file_name;
-extern char const *ImgText;
+extern char const *image_text;
 extern char const *latitude;
 extern char const *longitude;
 extern char const *time_format;

@@ -5,7 +5,7 @@
 
 //-------------------------------------------------------------------------------------------------------
 void *retval;
-int iNumOfCtrl           = 0;
+int camera_controls_count           = 0;
 int camera_id               = 0;
 pthread_t thread_display = 0;
 pthread_t thread_save       = 0;
@@ -71,7 +71,7 @@ ASI_ERROR_CODE setControl(int camera_id, ASI_CONTROL_TYPE control, long value, A
 {
     ASI_ERROR_CODE ret = ASI_SUCCESS;
     int i;
-    for (i = 0; i < iNumOfCtrl && i <= control; i++) // controls are sorted 1 to n
+    for (i = 0; i < camera_controls_count && i <= control; i++) // controls are sorted 1 to n
     {
         ret = ASIGetControlCaps(camera_id, i, &ControlCaps);
 
@@ -286,14 +286,14 @@ void computeHistogram(unsigned char *imageBuffer, int my_image_width, int my_ima
     // Different image types have a different number of bytes per pixel.
     int bpp = bytesPerPixel(imageType);
     my_image_width *= bpp;
-    int roiX1 = (my_image_width * histogram_box_center_from_left_pct) - (histogram_box_height_px * bpp / 2);
-    int roiX2 = roiX1 + (bpp * histogram_box_height_px);
-    int roiY1 = (my_image_height * histogram_box_center_from_top_pct) - (histogram_box_width_px / 2);
-    int roiY2 = roiY1 + histogram_box_width_px;
+    int roi_x1 = (my_image_width * histogram_box_center_from_left_pct) - (histogram_box_height_px * bpp / 2);
+    int roi_x2 = roi_x1 + (bpp * histogram_box_height_px);
+    int roi_y1 = (my_image_height * histogram_box_center_from_top_pct) - (histogram_box_width_px / 2);
+    int roi_y2 = roi_y1 + histogram_box_width_px;
 
     // Start off and end on a logical pixel boundries.
-    roiX1 = (roiX1 / bpp) * bpp;
-    roiX2 = (roiX2 / bpp) * bpp;
+    roi_x1 = (roi_x1 / bpp) * bpp;
+    roi_x2 = (roi_x2 / bpp) * bpp;
 
     // For RGB24, data for each pixel is stored in 3 consecutive bytes: blue, green, red.
     // For all image types, each row in the image contains one row of pixels.
@@ -303,9 +303,9 @@ void computeHistogram(unsigned char *imageBuffer, int my_image_width, int my_ima
         case ASI_IMG_RGB24:
         case ASI_IMG_RAW8:
         case ASI_IMG_Y8:
-            for (int y = roiY1; y < roiY2; y++)
+            for (int y = roi_y1; y < roi_y2; y++)
             {
-                for (int x = roiX1; x < roiX2; x += bpp)
+                for (int x = roi_x1; x < roi_x2; x += bpp)
                 {
                     i         = (my_image_width * y) + x;
                     int total = 0;
@@ -320,19 +320,19 @@ void computeHistogram(unsigned char *imageBuffer, int my_image_width, int my_ima
             }
             break;
         case ASI_IMG_RAW16:
-            for (int y = roiY1; y < roiY2; y++)
+            for (int y = roi_y1; y < roi_y2; y++)
             {
-                for (int x = roiX1; x < roiX2; x += bpp)
+                for (int x = roi_x1; x < roi_x2; x += bpp)
                 {
                     i = (my_image_width * y) + x;
-                    int pixelValue;
+                    int pixel_value;
                     // This assumes the image data is laid out in big endian format.
                     // We are going to grab the most significant byte
                     // and use that for the histogram value ignoring the
                     // least significant byte so we can use the 256 value histogram array.
                     // If t's acutally little endian then add a +1 to the array subscript for b[i].
-                    pixelValue = b[i];
-                    histogram[pixelValue]++;
+                    pixel_value = b[i];
+                    histogram[pixel_value]++;
                 }
             }
             break;
@@ -664,7 +664,7 @@ int main(int argc, char *argv[])
     int text_offset_from_left_px                  = DEFAULT_TEXT_OFFSET_FROM_LEFT_PX;
     int text_offset_from_top_px                  = DEFAULT_TEXT_OFFSET_FROM_TOP_PX;
     int text_line_height_px         = DEFAULT_TEXT_LINE_HEIGHT_PX;
-    char const *ImgText         = "";
+    char const *image_text         = "";
     char const *image_extra_text_file_name    = "";
     int extra_file_age            = 0; // 0 disables it
     char text_buffer[1024]       = { 0 };
@@ -724,7 +724,7 @@ int main(int argc, char *argv[])
     int preview                 = 0;
     int time_show                = DEFAULT_TIME_SHOW;
     int darkframe               = 0;
-    char const *tempType        = "C"; // Celsius
+    char const *temperature_unit        = "C"; // Celsius
 
     int temperature_show                = 0;
     int exposure_show            = 0;
@@ -840,12 +840,12 @@ int main(int argc, char *argv[])
 
     printf("\n%s Information:\n", ASICameraInfo.Name);
     int image_width_max, image_height_max;
-    double pixelSize;
+    double pixel_size_microns;
     image_width_max  = ASICameraInfo.MaxWidth;
     image_height_max = ASICameraInfo.MaxHeight;
-    pixelSize  = ASICameraInfo.PixelSize;
+    pixel_size_microns  = ASICameraInfo.PixelSize;
     printf("  - Resolution:%dx%d\n", image_width_max, image_height_max);
-    printf("  - Pixel Size: %1.1fmicrons\n", pixelSize);
+    printf("  - Pixel Size: %1.1fmicrons\n", pixel_size_microns);
     printf("  - Supported Bin: ");
     for (int i = 0; i < 16; ++i)
     {
@@ -884,11 +884,11 @@ int main(int argc, char *argv[])
         closeUp(1); // Can't do anything so might as well exit.
     }
 
-    ASIGetNumOfControls(camera_id, &iNumOfCtrl);
+    ASIGetNumOfControls(camera_id, &camera_controls_count);
     if (debug_level >= 3) // this is really only needed for debugging
     {
         printf("Control Caps:\n");
-        for (i = 0; i < iNumOfCtrl; i++)
+        for (i = 0; i < camera_controls_count; i++)
         {
             ASIGetControlCaps(camera_id, i, &ControlCaps);
             printf("- %s:\n", ControlCaps.Name);
@@ -926,14 +926,14 @@ int main(int argc, char *argv[])
             image_type = ASI_IMG_RAW8;
     }
 
-    const char *sType; // displayed in output
+    const char *image_type_name; // displayed in output
     if (image_type == ASI_IMG_RAW16)
     {
-        sType = "ASI_IMG_RAW16";
+        image_type_name = "ASI_IMG_RAW16";
     }
     else if (image_type == ASI_IMG_RGB24)
     {
-        sType = "ASI_IMG_RGB24";
+        image_type_name = "ASI_IMG_RGB24";
     }
     else if (image_type == ASI_IMG_RAW8)
     {
@@ -941,16 +941,16 @@ int main(int argc, char *argv[])
         if (ASICameraInfo.IsColorCam)
         {
             image_type = ASI_IMG_Y8;
-            sType      = "ASI_IMG_Y8 (not RAW8 for color cameras)";
+            image_type_name      = "ASI_IMG_Y8 (not RAW8 for color cameras)";
         }
         else
         {
-            sType = "ASI_IMG_RAW8";
+            image_type_name = "ASI_IMG_RAW8";
         }
     }
     else
     {
-        sType = "ASI_IMG_Y8";
+        image_type_name = "ASI_IMG_Y8";
     }
 
     //-------------------------------------------------------------------------------------------------------
@@ -961,7 +961,7 @@ int main(int argc, char *argv[])
     printf(    "===============\n");
     printf("\n\nGlobal Settings:\n");
     printf(    "================\n");
-    printf("              Image Type: %s\n", sType);
+    printf("              Image Type: %s\n", image_type_name);
     printf("         Image File Name: %s\n", image_file_name);
     printf("       Sensor Resolution: %dx%d\n", image_width, image_height);
     printf("          Cooler Enabled: %s\n", yesNo(cooler_enabled));
@@ -1004,7 +1004,7 @@ int main(int argc, char *argv[])
     printf("\n\nOverlay Settings:\n");
     printf(    "=================\n");
     printf("      Dark Frame Capture: %s  -- Yes = disables overlays\n", yesNo(darkframe));
-    printf("            Text Overlay: %s\n", ImgText[0] == '\0' ? "[none]" : ImgText);
+    printf("            Text Overlay: %s\n", image_text[0] == '\0' ? "[none]" : image_text);
     printf("     Text Extra Filename: %s\n", image_extra_text_file_name[0] == '\0' ? "[none]" : image_extra_text_file_name);
     printf(" Text Extra Filename Age: %d\n", extra_file_age);
     printf("        Text Line Height: %dpx\n", text_line_height_px);
@@ -1023,7 +1023,7 @@ int main(int argc, char *argv[])
 #endif
     printf("               Show Time: %s (format: %s)\n", yesNo(time_show), time_format);
     printf("        Show Temperature: %s\n", yesNo(temperature_show));
-    printf("        Temperature Unit: %s\n", tempType);
+    printf("        Temperature Unit: %s\n", temperature_unit);
     printf("           Show Exposure: %s\n", yesNo(exposure_show));
     printf("               Show Gain: %s\n", yesNo(gain_show));
     printf("         Show Brightness: %s\n", yesNo(brightness_show));
@@ -1082,7 +1082,7 @@ int main(int argc, char *argv[])
     int text_offset_from_left_pre_binning_px        = text_offset_from_left_px;
     int text_offset_from_top_pre_binning_px        = text_offset_from_top_px;
     int font_size_pre_binning      = font_size;
-    int originalLinewidth     = font_weight;
+    int font_weight_pre_binning     = font_weight;
     int message_no_daytime_shown = 0; // Have we displayed "not taking picture during day" message, if applicable?
     int gain_change_amount            = 0; // how much to change gain up or down
 
@@ -1189,8 +1189,8 @@ int main(int argc, char *argv[])
                     message_no_daytime_shown = 1;
 
                     // sleep until almost nighttime, then wake up and sleep a short time
-                    int secsTillNight = calculateTimeToNightTime(latitude, longitude, angle);
-                    sleep(secsTillNight - 10);
+                    int seconds_till_night = calculateTimeToNightTime(latitude, longitude, angle);
+                    sleep(seconds_till_night - 10);
                 }
                 else
                 {
@@ -1310,7 +1310,7 @@ int main(int argc, char *argv[])
         text_offset_from_left_px     = text_offset_from_left_pre_binning_px / binning_current;
         text_offset_from_top_px     = text_offset_from_top_pre_binning_px / binning_current;
         font_size   = font_size_pre_binning / binning_current;
-        font_weight  = originalLinewidth / binning_current;
+        font_weight  = font_weight_pre_binning / binning_current;
         buffer_size = image_width * image_height * bytesPerPixel((ASI_IMG_TYPE)image_type);
         if (exposures_counter > 0 && binning_day != binning_night)
         {
@@ -1621,39 +1621,39 @@ int main(int argc, char *argv[])
                 // If darkframe mode is off, add overlay text to the image
                 if (!darkframe)
                 {
-                    int iYOffset = 0;
+                    int text_offset_vertical_current_px = 0;
 
                     if (time_show == 1)
                     {
-                        // The time and ImgText are in the larger font; everything else is in smaller font.
-                        cvText(pRgb, time_buffer, text_offset_from_left_px, text_offset_from_top_px + (iYOffset / binning_current), font_size * 0.1, font_weight,
+                        // The time and image_text are in the larger font; everything else is in smaller font.
+                        cvText(pRgb, time_buffer, text_offset_from_left_px, text_offset_from_top_px + (text_offset_vertical_current_px / binning_current), font_size * 0.1, font_weight,
                                font_smoothing_options[font_smoothing], font_numbers[font_number], font_color, image_type, font_outline);
-                        iYOffset += text_line_height_px;
+                        text_offset_vertical_current_px += text_line_height_px;
                     }
 
-                    if (ImgText[0] != '\0')
+                    if (image_text[0] != '\0')
                     {
-                        cvText(pRgb, ImgText, text_offset_from_left_px, text_offset_from_top_px + (iYOffset / binning_current), font_size * 0.1, font_weight,
+                        cvText(pRgb, image_text, text_offset_from_left_px, text_offset_from_top_px + (text_offset_vertical_current_px / binning_current), font_size * 0.1, font_weight,
                                font_smoothing_options[font_smoothing], font_numbers[font_number], font_color, image_type, font_outline);
-                        iYOffset += text_line_height_px;
+                        text_offset_vertical_current_px += text_line_height_px;
                     }
 
                     if (temperature_show == 1)
                     {
                         char C[20] = { 0 }, F[20] = { 0 };
-                        if (strncmp(tempType, "C", 2) == 0 || strncmp(tempType, "B", 2) == 0)
+                        if (strncmp(temperature_unit, "C", 2) == 0 || strncmp(temperature_unit, "B", 2) == 0)
                         {
                             sprintf(C, "  %.0fC", (float)temperature_actual / 10);
                         }
-                        if (strncmp(tempType, "F", 2) == 0 || strncmp(tempType, "B", 2) == 0)
+                        if (strncmp(temperature_unit, "F", 2) == 0 || strncmp(temperature_unit, "B", 2) == 0)
                         {
                             sprintf(F, "  %.0fF", (((float)temperature_actual / 10 * 1.8) + 32));
                         }
                         sprintf(tmp_buffer, "Sensor: %s %s", C, F);
-                        cvText(pRgb, tmp_buffer, text_offset_from_left_px, text_offset_from_top_px + (iYOffset / binning_current),
+                        cvText(pRgb, tmp_buffer, text_offset_from_left_px, text_offset_from_top_px + (text_offset_vertical_current_px / binning_current),
                                font_size * FONT_SIZE_SMALL_MULTIPLIER, font_weight, font_smoothing_options[font_smoothing],
                                font_numbers[font_number], font_color_small, image_type, font_outline);
-                        iYOffset += text_line_height_px;
+                        text_offset_vertical_current_px += text_line_height_px;
                     }
 
                     if (exposure_show == 1)
@@ -1681,10 +1681,10 @@ int main(int argc, char *argv[])
                         {
                             strcat(tmp_buffer, " (auto)");
                         }
-                        cvText(pRgb, tmp_buffer, text_offset_from_left_px, text_offset_from_top_px + (iYOffset / binning_current),
+                        cvText(pRgb, tmp_buffer, text_offset_from_left_px, text_offset_from_top_px + (text_offset_vertical_current_px / binning_current),
                                font_size * FONT_SIZE_SMALL_MULTIPLIER, font_weight, font_smoothing_options[font_smoothing],
                                font_numbers[font_number], font_color_small, image_type, font_outline);
-                        iYOffset += text_line_height_px;
+                        text_offset_vertical_current_px += text_line_height_px;
                     }
 
                     if (gain_show == 1)
@@ -1704,10 +1704,10 @@ int main(int argc, char *argv[])
                             strcat(tmp_buffer, x);
                         }
 
-                        cvText(pRgb, tmp_buffer, text_offset_from_left_px, text_offset_from_top_px + (iYOffset / binning_current),
+                        cvText(pRgb, tmp_buffer, text_offset_from_left_px, text_offset_from_top_px + (text_offset_vertical_current_px / binning_current),
                                font_size * FONT_SIZE_SMALL_MULTIPLIER, font_weight, font_smoothing_options[font_smoothing],
                                font_numbers[font_number], font_color_small, image_type, font_outline);
-                        iYOffset += text_line_height_px;
+                        text_offset_vertical_current_px += text_line_height_px;
                     }
                     if (gain_adjust_current)
                     {
@@ -1720,20 +1720,20 @@ int main(int argc, char *argv[])
                     if (brightness_show == 1)
                     {
                         sprintf(tmp_buffer, "Brightness: %d", brightness_current);
-                        cvText(pRgb, tmp_buffer, text_offset_from_left_px, text_offset_from_top_px + (iYOffset / binning_current),
+                        cvText(pRgb, tmp_buffer, text_offset_from_left_px, text_offset_from_top_px + (text_offset_vertical_current_px / binning_current),
                                font_size * FONT_SIZE_SMALL_MULTIPLIER, font_weight, font_smoothing_options[font_smoothing],
                                font_numbers[font_number], font_color_small, image_type, font_outline);
-                        iYOffset += text_line_height_px;
+                        text_offset_vertical_current_px += text_line_height_px;
                     }
 
 #ifdef USE_HISTOGRAM
                     if (histogram_mean_show && histogram_used)
                     {
                         sprintf(tmp_buffer, "Histogram mean: %d", mean);
-                        cvText(pRgb, tmp_buffer, text_offset_from_left_px, text_offset_from_top_px + (iYOffset / binning_current),
+                        cvText(pRgb, tmp_buffer, text_offset_from_left_px, text_offset_from_top_px + (text_offset_vertical_current_px / binning_current),
                                font_size * FONT_SIZE_SMALL_MULTIPLIER, font_weight, font_smoothing_options[font_smoothing],
                                font_numbers[font_number], font_color_small, image_type, font_outline);
-                        iYOffset += text_line_height_px;
+                        text_offset_vertical_current_px += text_line_height_px;
                     }
                     if (histogram_box_show && histogram_used)
                     {
@@ -1860,10 +1860,10 @@ int main(int argc, char *argv[])
                                             line[slen - 1] = '\0';
                                         }
 
-                                        cvText(pRgb, line, text_offset_from_left_px, text_offset_from_top_px + (iYOffset / binning_current),
+                                        cvText(pRgb, line, text_offset_from_left_px, text_offset_from_top_px + (text_offset_vertical_current_px / binning_current),
                                                font_size * FONT_SIZE_SMALL_MULTIPLIER, font_weight, font_smoothing_options[font_smoothing],
                                                font_numbers[font_number], font_color_small, image_type, font_outline);
-                                        iYOffset += text_line_height_px;
+                                        text_offset_vertical_current_px += text_line_height_px;
                                     }
                                 }
                                 fclose(fp);

@@ -107,8 +107,8 @@ int main(int argc, char* argv[]) {
   int c;
   bool labelsEnabled = true;
   int font_face = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
-  double fontScale = 2;
-  int fontType = cv::LINE_8;
+  double font_scale = 2;
+  int font_smoothing = cv::LINE_8;
   int thickness = 3;
   unsigned char font_color[3] = {255, 0, 0};
   double angle = 0;
@@ -173,16 +173,16 @@ int main(int argc, char* argv[]) {
         font_face = get_font_by_name(optarg);
         break;
       case 'S':
-        fontScale = atof(optarg);
+        font_scale = atof(optarg);
         break;
       case 'T':
         tmp = atoi(optarg);
         if (tmp == 2)
-          fontType = cv::LINE_4;
+          font_smoothing = cv::LINE_4;
         else if (tmp == 0)
-          fontType = cv::LINE_AA;
+          font_smoothing = cv::LINE_AA;
         else
-          fontType = cv::LINE_8;
+          font_smoothing = cv::LINE_8;
         break;
       default:
         break;
@@ -203,7 +203,7 @@ int main(int argc, char* argv[]) {
 
   cv::Mat accumulated;
 
-  int prevHour = -1;
+  int hour_previous = -1;
 
   for (size_t f = 0; f < files.gl_pathc; f++) {
     cv::Mat imagesrc = cv::imread(files.gl_pathv[f], cv::IMREAD_UNCHANGED);
@@ -237,8 +237,8 @@ int main(int argc, char* argv[]) {
       stat(files.gl_pathv[f], &s);
 
       struct tm* t = localtime(&s.st_mtime);
-      if (t->tm_hour != prevHour) {
-        if (prevHour != -1) {
+      if (t->tm_hour != hour_previous) {
+        if (hour_previous != -1) {
           // Draw a dashed line and label for hour
           cv::LineIterator it(accumulated, cv::Point(f, 0),
                               cv::Point(f, accumulated.rows));
@@ -259,18 +259,18 @@ int main(int argc, char* argv[]) {
           std::string text(hour);
           int baseline = 0;
           cv::Size textSize =
-              cv::getTextSize(text, font_face, fontScale, thickness, &baseline);
+              cv::getTextSize(text, font_face, font_scale, thickness, &baseline);
 
           if (f - textSize.width >= 0) {
             cv::putText(accumulated, text,
                         cv::Point(f - textSize.width,
                                   accumulated.rows - textSize.height),
-                        font_face, fontScale,
+                        font_face, font_scale,
                         cv::Scalar(font_color[0], font_color[1], font_color[2]),
-                        thickness, fontType);
+                        thickness, font_smoothing);
           }
         }
-        prevHour = t->tm_hour;
+        hour_previous = t->tm_hour;
       }
     }
   }
