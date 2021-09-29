@@ -166,10 +166,10 @@
   },
   "upload": {
     "enable": { "name":"Enable", "value": false, "description":"Global enable/disable of all Uploads", "default": false, "type":"bool"},
-    "method": { "name":"Method", "value": "ftp", "description":"Method for data upload.", "default": null, "type":"string", "options":["rsync","scp","ftp"] },
-    "username": { "name":"Username", "value": "", "description":"Username on the remote system to use for upload. - Must be set for Uploads to work.", "default": "", "type":null},
-    "password": { "name":"Password", "value": "", "description":"Leave blank to use SSH keys (for scp and rsync).", "default": "", "type":null},
-    "server_name": { "name":"Server", "value": "", "description":"Remote Server IP or Hostname for upload.", "default": "", "type":null},
-    "path": { "name":"Path", "value": "", "description":"Base Allsky Website Directory Path on the remote server.", "default": "", "type":null}
+    "method": { "name":"Method", "value": "ftp", "description":"Method for data upload.", "default": "ftp", "type":"string", "options":["rsync","scp","ftp"] },
+    "username": { "name":"Username", "value": "", "description":"Username on the remote system to use for upload. - Must be set for Uploads to work.", "default": "", "type":"string"},
+    "password": { "name":"Password", "value": "", "description":"Leave blank to use SSH keys (for scp and rsync).", "default": "", "type":"password"},
+    "server_name": { "name":"Server", "value": "", "description":"Remote Server IP or Hostname for upload.", "default": "", "type":"string"},
+    "path": { "name":"Path", "value": "", "description":"Base Allsky Website Directory Path on the remote server.", "default": "", "type":"string"}
   }
 }
