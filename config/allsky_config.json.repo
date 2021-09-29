@@ -1,0 +1,175 @@
+{ 
+  "global": {
+    "h1": { "type":"header", "name":"Global Settings"},
+    "camera": { "name": "Camera Type", "description":"The type of camera taking your allsky photos.", "value": "auto", "default": "auto", "type":"string", "options": [ "auto", "ZWO", "RPiHQ" ] },
+    "path_output": { "name": "Image Output Path", "description": "This is the path where allsky photos are written for review / further processing.", "value":"/home/pi/allsky", "default":"/home/pi/allsky", "type":"path" },
+    "path_scripts": { "name": "Script Path", "value":"/etc/allsky/scripts", "description":"This is the path which contains the post-processing scripts used by the allsky program.", "default":"/etc/allsky/scripts", "type":"path" },
+    "image_name": { "name":"Image Name", "value":"image.jpg", "description": "The name of the image written by the allsky capture program.", "default":"image.jpg", "type":"string" },
+    "locale": { "name": "Locale", "value":"en_US.UTF-8", "description":"This is the locale value for your geographic location.  This value is used to determine decimal and thousands formatting.", "type":"string", "default":"en_US.UTF-8", "advanced":true },
+    "latitude": { "name": "GPS Latitude", "value":"60.7N", "description":"The GPS Latitude of your allsky camera.  This is used for Sun Rise/Set calculations.", "default":"60.7N", "type":"string"},
+    "longitude": { "name": "GPS Longitude", "value":"135.05W", "description":"The GPS Longitude of your allsky camera.  This is used for Sun Rise/Set calculations.", "default":"135.05W", "type":"string" },
+    "solar_angle": { "name": "Solar Angle", "value": -6, "description":"This is the angle above (+) or below (-) the horizon to switch between Day and Night capture modes.", "default": -6, "type":"int", "range": [-180,180] },
+    "debug_level": { "name": "Logging Level", "value": 1, "description":"This determines the verboseness of the log output by the allsky programs. Higher value = more verbose. Valid range: 0 to 9", "default":1, "type":"int", "range": [0,9] }
+  },
+  "capture": {
+    "global": {
+      "h1": { "type": "header", "name":"Both Day and Night time capture settings."},
+      "histogram_box_parameters": { "name":"Histogram Box Dimensions and Position", "value":"500 500 50 50", "description":"This is the dimensions ( width, height ) and Percentage position ( from left, from right ) of the center of the box used for histogram calculations during auto-exposure.", "default":"500 500 50 50", "advanced": true  },
+      "continuous_exposure": { "name":"Use Continuous Exposure method", "value": { "ZWO": false, "RPiHQ": false }, "description":"This setting enabled the v0.7 and earlier continuous exposure method.  Enabling this setting causes excess heat build up in the sensor and is only recommended if you are seeing 'ASI_TIMEOUT_ERROR' in the allsky logs.", "default":false, "type":"bool", "advanced": true },
+      "image_width_px": { "name": "Image Width", "value": 0, "unit":"pixels", "description":"The desired horizontal size of the allsky images - leave at 0 to use your maximum sensor horizontal pixel count.", "default": 0, "type":"uint" },
+      "image_height_px": { "name": "Image Height", "value": 0, "unit":"pixels", "description":"The desired vertical size of the allsky images - leave at 0 to use your maximum sensor vertical pixel count.", "default": 0, "type":"uint" },
+      "dark_frame_capture": { "name": "Dark Frame Capture Mode", "value": false, "description": "Enable this to capture dark frames.  This disables all overlays.  Be sure your camera aperture is completely covered, blockign all light.  Dark frame capture will continue until this option is turned off.", "default":"false", "type":"bool" },
+      "cooler_enabled": { "name":"Camera Cooler Enabled", "value": false, "description":"Whether to turn on your camera's built in cooler, if present.", "default":false, "type":"bool" },
+      "cooler_target_temp_c": { "name":"Camera Cooler Target Temperature", "value":0, "unit":"C", "description":"The target temperature for your camera cooler, if present and enabled.", "default": 0, "type":"int" },
+      "image_color_space": { "name":"Image Color Space", "value": "auto", "description":"The image output Color Space/Encoding.  For Color cameras, only RGB24 (for full-color) or Y8 (for B&W output) can be used.  For mono cameras, RAW8 or RAW16 should be selected. Using 'auto' tries color first, then RAW16, then RAW8.", "type": "string", "options": [ "RAW8", "RGB24", "RAW16", "Y8", "auto" ] },
+      "image_gamma": { "name":"Image Gamma", "value": 50, "description":"0 to 100. Changes the difference between light and dark areas.  A high value increases contrast. Not supported on all cameras.", "default": 50, "type":"int" },
+      "camera_offset": { "name":"Camera Offset", "value": 0, "description":"From 0 to a camera-specific upper value. Adds about 1/10 the specified value to every pixel.", "default": 0, "type":"int" },
+      "white_balance_auto": { "name":"Auto White Balance", "value": false, "description":"Enable/Disable Auto White Balance calculation", "default": false, "type":"bool" },
+      "white_balance_red": { "name":"White Balance: Red Offset", "value": { "ZWO": 53, "RPiHQ": 53 }, "description":"The Red Offset for manual White Balance", "default": 53, "type":"int", "range":[0,99] },
+      "white_balance_blue": { "name":"White Balance: Blue Offset", "value": { "ZWO": 90, "RPiHQ": 90 }, "description":"The Blue Offset for manual White Balance", "default": 90, "type":"int", "range":[0,99] },
+      "image_quality": { "name":"Image Quality", "value": 95, "description":"Image Quality, JPG 0-100, PNG 0-9", "default": 95, "type":"int"},
+      "usb_bandwidth_auto": { "name":"USB Auto Bandwidth", "value": true, "description":"Whether to determine USB Bandwidth automatically.", "default": true, "type":"bool" },
+      "image_flip": { "name":"Image Flip", "value": "None", "description":"Should the image be flipped?", "default": "None", "type":"string", "options": ["None","Vertical","Horizontal","Both"] }
+    },
+    "day": {
+      "h1": { "type": "header", "name":"Day time capture settings."},
+      "enable": { "name":"Enable Day time Image Capture", "value": true, "description":"Wheter to take exposures during Day time hours.", "default": true, "type":"bool"},
+      "upload": { "name":"Upload", "value": false, "description":"Upload Day Images? (depends on uplaod settings below)", "default": false, "type":"bool"},
+      "save": { "name":"Save Day time Exposures", "value": false, "description":"Normally, Day time exposures are only for display and are not saved for post-processing.  Enable this if you'd like Day time exposures saved, too.", "default": false, "type":"bool"},
+      "exposure_auto": { "name":"Auto Exposure Length", "value": true, "description":"Enable to automatically determine the exposure length during Day time collection.", "default": true, "type":"bool"},
+      "exposure_ms": { "name":"Exposure Length", "value": 0.5, "description":"Manual Exposure Length.  If Auto-Exposure is enabled, this is the starting point.", "default": 0.5, "type":"ufloat", "unit":"ms"},
+      "brightness_target": { "name":"Brightness Target", "value": 50, "description":"This is the target brightness for Auto-Exposure.", "default": 50, "type":"uint"},
+      "delay_ms": { "name":"Inter-Exposure delay", "value": 5000, "description":"How long to pause between Day time exposures. ( 1000 ms == 1 second )", "default": 5000, "type":"uint", "unit":"ms"},
+      "binning": { "name":"Binning", "value": "1x1", "description":"Camera Binning setting.  Consult your camera documentation for supported binning modes.", "default": "1x1", "type":"string", "options": ["1x1","2x2","3x3","4x4"] }
+    },
+    "night": {
+      "h1": { "type": "header", "name":"Night time capture settings."},
+      "enable": { "name":"Enable Night Image Capture", "value": true, "description":"Wheter to take exposures during Night time hours.", "default": true, "type":"bool"},
+      "upload": { "name":"Upload", "value": false, "description":"Upload Night Images? (depends on uplaod settings below)", "default": false, "type":"bool"},
+      "save": { "name":"Save Night time Exposures", "value": false, "description":"Night time are saved by default.  Disable this if you'd like not to save the Night images for post-processing.", "default": false, "type":"bool"},
+      "exposure_auto": { "name":"Auto Exposure Length", "value": true, "description":"Enable to automatically determine the exposure length during Night time collection.", "default": true, "type":"bool"},
+      "exposure_ms": { "name":"Exposure Length", "value": 10000, "description":"Manual Exposure Length.  If Auto-Exposure is enabled, this is the starting point. ( 1000ms == 1 second )", "default": 10000, "type":"ufloat", "unit":"ms"},
+      "exposure_max_ms": { "name":"Max Exposure Length", "value": 20000, "description":"Maximum Exposure Length.  If Auto-Exposure is enabled, this is the maximum allowed exposure length. ( 1000ms == 1 second )", "default": 20000, "type":"ufloat", "unit":"ms"},
+      "gain_auto": { "name":"Auto Gain", "value": false, "description":"Enable to automatically determine the camera gain during Night time collection. Note: Enabling Auto-Exposure AND Auto-Gain at the same time can produce odd results.", "default": false, "type":"bool"},
+      "gain": { "name":"Gain", "value": 50, "description":"Manual Gain setting.  If Auto-Gain is enabled, this is the starting point.", "default": 50, "type":"ufloat", "unit":"ms"},
+      "gain_max": { "name":"Max Gain", "value": 200, "description":"Maximum Gain Value.  If Auto-Gain is enabled, this is the maximum allowed gain value.", "default": 200, "type":"ufloat"},
+      "gain_transition_time_m": { "name":"Gain Transition Time", "value": 15, "description":"If Auto-Gain is disabled for both Day and Night collection, the manual gain will be adjusted gradually over this period (in minutes) when switching between Day and Night collection modes. 0 to disable.", "default": 15, "type":"uint", "unit":"minutes"},
+      "brightness_target": { "name":"Brightness Target", "value": 50, "description":"This is the target brightness for Auto-Exposure / Auto-Gain.", "default": 50, "type":"uint"},
+      "delay_ms": { "name":"Inter-Exposure delay", "value": 5000, "description":"How long to pause between Night time exposures. ( 1000 ms == 1 second )", "default": 5000, "type":"uint", "unit":"ms"},
+      "binning": { "name":"Binning", "value": "1x1", "description":"Camera Binning setting.  Consult your camera documentation for supported binning modes.", "default": "1x1", "type":"string", "options": ["1x1","2x2","3x3","4x4"] }
+    },
+    "overlay": {
+      "h1": { "type":"header", "name":"Toggle On/Off each graphic overlay below."},
+      "time_show": { "name":"Time", "value": true, "description":"Show the time?", "default": true, "type":"bool"},
+      "time_format": { "name":"Time Format", "value": "%Y-%m-%d %H:%M:%S", "description":"Format for the Time line ( See 'man 3 strftime' for options )", "default": "%Y-%m-%d %H:%M:%S", "type":"string"},
+      "temperature_show": { "name":"Sensor Temperature", "value": true, "description":"", "default": true, "type":"bool"},
+      "temperature_unit": { "name":"Temperature Unit", "value": "C", "description":"Unit for the Sensor Temperature display.", "default": "C", "type":"string", "option": ["C","F"]},
+      "exposure_show": { "name":"Exposure Length", "value": true, "description":"", "default": true, "type":"bool"},
+      "gain_show": { "name":"Gain", "value": true, "description":"", "default": true, "type":"bool"},
+      "brightness_show": { "name":"Brightness", "value": true, "description":"", "default": true, "type":"bool"},
+      "usb_show": { "name":"USB Bandwidth", "value": false, "description":"Usually only used for troubleshooting", "default": false, "type":"bool"},
+      "histogram_box_show": { "name":"Histogram Box Outline", "value": false, "description":"Useful for determining what the 'Histogram Box' numbers should be.", "default": false, "type":"bool"},
+      "histogram_mean_show": { "name":"Histogram Mean value", "value": false, "description":"", "default": false, "type":"bool"},
+      "h2": { "type":"header", "name":"Text Overlay Options"},
+      "text": { "name":"Additional Text", "value": "", "description":"Additional Text to overlay below the Time (leave blank to disable)", "default": "", "type":"string" },
+      "text_extra_file": { "name":"Text File to append", "value": "", "description":"If provided, the text from the selected file will be appended at the bottom of the other Overlay text.", "default": "", "type":"file"},
+      "text_extra_file_max_age_s": { "name":"Maximum File Age", "value": 0, "description":"If the file is older than this many seconds, it will stop being appended even if present. Set to 0 to always append the file contents.", "default": 0, "type":"uint", "unit":"seconds" },
+      "text_offset_from_left_px": { "name":"Text Left Offset", "value": 15, "description":"All text will be offset from the left by this many pixels.", "default": 15, "type":"uint", "unit":"pixels" },
+      "text_offset_from_top_px": { "name":"Text Top Offset", "value": 70, "description":"The first line of text will be offset from the top by this many pixels.", "default": 70, "type":"uint", "unit":"pixels" },
+      "text_line_height_px": { "name":"Text Line Height", "value": 60, "description":"This is the height in pixels allowed for each text line.  If the text overlaps, increase this value - if there's too much space, decrease this value.", "default": 60, "type": "uint", "unit":"pixels" },
+      "h3": { "type":"header", "name":"Font Options"},
+      "font_name": { "name":"Font", "value": "Simplex", "description":"The font used for text overlays.", "default": "Simplex", "type":"string", "options":["Simplex", "Plain", "Duplex", "Complex", "Triplex", "Complex Small", "Script Simplex", "Script Complex"] },
+      "font_color_rgb": { "name":"Top Font Color", "value": "255 255 255", "description":"Color for larger text ( Time and supplied Text ).  Can be in a space separated list of values from 0 to 255 for each Red Green and Blue ( 255 255 255 == white ), or HTML Hex code ( #000000 == black )", "default": "255 255 255", "type":"string" },
+      "small_color_rgb": { "name":"Small Font Color", "value": "255 255 255", "description":"Color for smaller text ( everything else ).  Can be in a space separated list of values from 0 to 255 for each Red Green and Blue ( 255 255 255 == white ), or HTML Hex code ( #000000 == black )", "default": "255 255 255", "type":"string" },
+      "font_line_smoothing": { "name":"Font Smoothing", "value": "Anti-Alias", "description":"How smooth to blend the text.", "default": "Anti-Alias", "type":"string", "options":[ "Anti-Alias","8 Pixel", "4 Pixel" ] },
+      "font_size": { "name":"Font Size", "value": 7, "description":"Large text size ( Time and supplied Text ), other text will be about 80% of this size.", "default": 7, "type":"uint", "range": [4,10] },
+      "font_weight": { "name":"Font Weight", "value": 1, "description":"Like your text bold?  Increase this value > 1", "default": 1, "type":"uint", "range":[1,5] },
+      "font_outline": { "name":"Font Outline", "value": false, "description":"Outline the text.", "default": false, "type":"bool" }
+    }
+  },
+  "webui": {
+    "h1": { "type":"header", "name":"Web UI Options"},
+    "always_show_advanced": { "name":"Always show Advance Options", "value": false, "description":"", "default": false, "type":"bool" },
+    "notification_images": { "name":"Display Notification Images", "value": true, "description":"Activate to display notification images, e.g., 'Camera is off during the day'.", "default": true, "type":"bool" },
+    "current_alias": { "name":"Web Server Image Alias", "value": "current", "description":"This is the web server alias pointing to the current image folder.", "default": "current", "type":"string" },
+    "image_prefix": { "name":"Image Filename Prefix", "value": "liveview-", "description":"Recommend not leaving empty as the Web UI may try to load the image while being post-processed.", "default": "liveview-", "type":"string" },
+    "settings_file": { "name":"Settings File", "value": "/etc/allsky/allsky_config.json", "description":"The File storing all the settings used by 'capture', this Web UI, and all post-processing scripts.", "default": "/etc/allsky/allsky.json", "type": "file" }
+  },
+  "uhubctl": {
+    "h1": { "type":"header", "name":"USB Hub Control"},
+    "eanble": { "name":"USB Hub Control", "value": false, "description":"Enable USB Hub Control - this to often fix 'missing' cameras.", "default": false, "type":"bool" },
+    "location": { "name":"uhubctl path", "value": "/usr/bin/uhubctl", "description":"Location of the 'uhubctl' program.", "default": "/usr/bin/uhubctl", "type":"file" },
+    "port": { "name":"USB Port", "value": "2", "description":"The USB port where the camera is plugged in.", "default": "2", "type":"string" }
+  },
+  "postprocessing": {
+    "global": {
+      "h1": { "type":"header", "name":"Post Processing Options"},
+      "subtract_dark_frame": { "name":"Dark Frame Subtraction", "value": false, "description":"If you've collected dark frames, enable this to subtract those from the Night exposures.", "default": false, "type":"bool" },
+      "auto_delete_past_data": { "name":"Auto Delete", "value": true, "description":"Automatically delete older data.", "default": true, "type":"bool" },
+      "days_to_keep": { "name":"Days to keep?", "value": 14, "description":"How many past days of data to keep when using Auto Delete. 0 - Only keep most recent 24 hours of data.", "default": 14, "type":"uint", "unit":"days" }
+    },
+    "resize": {
+      "h1": { "type":"header", "name":"Image Resize"},
+      "enable": { "name":"Enable", "value": false, "description":"Resize images after exposure is complete", "default": false, "type":"bool"},
+      "target_image_width_px": { "name":"Width", "value": 1920, "description":"Desired Image Width in Pixels", "default": 1920, "type":"uint", "unit":"pixels" },
+      "target_image_heaight_px": { "name":"Height", "value": 1080, "description":"Desired Image Height in Pixels", "default": 1080, "type":"uint", "unit":"pixels" }
+    },
+    "crop": {
+      "h1": { "type":"header", "name":"Image Crop"},
+      "enable": { "name":"Enable", "value": false, "description":"Useful to avoid distortion on edges of fisheye lens photos", "default": false, "type":"bool"},
+      "crop_width_px": { "name":"Crop Width", "value": 600, "description":"Crop Width in Pixels", "default": 600, "type":"uint", "unit":"pixels" },
+      "crop_height_px": { "name":"Crop Height", "value": 800, "description":"Crop Height in Pixels", "default": 800, "type":"uint", "unit":"pixels" },
+      "crop_offset_left_px": { "name":"Left Offset", "value": 180, "description":"Crop Offset from the Left of the image.", "default": 180, "type":"uint", "unit":"pixels" },
+      "crop_offset_top_px": { "name":"Top Offset", "value": 100, "description":"Crop Offset from Top of the image.", "default": 100, "type":"uint", "unit":"pixels" }
+    },
+    "stretch": {
+      "h1": { "type":"header", "name":"Image Auto-Stretch"},
+      "enable": { "name":"Enable", "value": false, "description":"Enable Auto-Stretch of the night exposures.", "default": false, "type":"bool" },
+      "amount": { "name":"Amount", "value": 10, "description":"Amount of Stretch to apply", "default": 10, "type":"uint" },
+      "midpoint_pct": { "name":"Midpoint", "value": 10, "description":"Mid-point of stretch (from left of histogram)", "default": 10, "type":"uint", "unit":"percent" }
+    },
+    "thumbnail": {
+      "h1": { "type":"header", "name":"Generate Thumbnail"},
+      "enable": { "name":"Enable", "value": true, "description":"", "default": true, "type":"bool" },
+      "target_width_px": { "name":"Thumbnail Width", "value": 100, "description":"", "default": 100, "type":"uint", "unit":"pixels" },
+      "target_height_px": { "name":"Thumbnail Height", "value": 75, "description":"", "default": 75, "type":"uint", "unit":"pixels" }
+    },
+    "badremoval": {
+      "h1": { "type":"header", "name":"Bad Exposure Removal"},
+      "enable": { "name":"Enable", "value": false, "description":"isn't necessary unless your system sometimes produces corrupt images.", "default": false, "type":"bool"},
+      "threshold_low_pct": { "name":"Low Threshold", "value": 1, "description":"Images below this mean brightness will be removed.", "default": 1, "type":"uint"},
+      "threshold_high_pct": { "name":"High Threshold", "value": 90, "description":"Images above this mean brightness will be removed.", "default": 90, "type":"uint"}
+    }
+  },
+  "end_of_night": {
+    "keogram": {
+      "h1": { "type":"header", "name":"Keogram"},
+      "enable": { "name":"Generate", "value": true, "description":"Generate Keogram at the end of the Night.", "default": true, "type":"bool"},
+      "upload": { "name":"Upload", "value": false, "description":"Upload the Keogram ( depends on upload settings below )", "default": false, "type":"bool"}
+    },
+    "startrails": {
+      "h1": { "type":"header", "name":"Startrails"},
+      "enable": { "name":"Generate", "value": true, "description":"Generate Startrails Image", "default": true, "type":"bool"},
+      "upload": { "name":"Upload", "value": false, "description":"Upload the Startrails image ( depends on upload settings below )", "default": false, "type":"bool"},
+      "threshold_brightness": { "name":"Brightness Threshold", "value": 0.1, "description":"Images with a brightness higher than the threshold will be skipped for startrails image generation", "default": 0.1, "type":"ufloat" }
+    },
+    "timelapse": {
+      "h1": { "type":"header", "name":"Startrails"},
+      "enable": { "name":"Generate", "value": false, "description":"Generate Timelapse video", "default": false, "type":"bool" },
+      "uplaod": { "name":"Upload", "value": false, "description":"Upload the Timelapse ( depends on upload settings below )", "default": false, "type":"bool" },
+      "width_px": { "name":"Width", "value": 0, "description":"Timelapse Width ( leave 0 for full width of collected images )", "default": 0, "type":"uint"},
+      "height_px": { "name":"Height", "value": 0, "description":"Timelapse Height ( leave 0 for full height of collected images )", "default": 0, "type":"uint"},
+      "bitrate": { "name":"Bitrate", "value": 2000, "description":"Bitrate of Timelapse Video", "default": 2000, "type":"uint", "unit":"Kbps"},
+      "fps": { "name":"FPS", "value": 25, "description":"Timelapse Video Frames Per Second", "default": 25, "type":"uint"},
+      "codec": { "name":"Codec", "value": "libx264", "description":"Codec to use for Timelapse Video encoding", "default": "libx264", "type":"string"}
+    }
+  },
+  "uplaod": {
+    "enable": { "name":"Enable", "value": false, "description":"Global enable/disable of all Uploads", "default": false, "type":"bool"},
+    "method": { "name":"Method", "value": "ftp", "description":"Method for data upload.", "default": null, "type":"string", "options":["rsync","scp","ftp"] },
+    "username": { "name":"Username", "value": "", "description":"Username on the remote system to use for upload. - Must be set for Uploads to work.", "default": "", "type":null},
+    "password": { "name":"Password", "value": "", "description":"Leave blank to use SSH keys (for scp and rsync).", "default": "", "type":null},
+    "server_name": { "name":"Server", "value": "", "description":"Remote Server IP or Hostname for upload.", "default": "", "type":null},
+    "path": { "name":"Path", "value": "", "description":"Base Allsky Website Directory Path on the remote server.", "default": "", "type":null}
+  }
+}
