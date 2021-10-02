@@ -24,3 +24,4 @@ scripts/startrails_only.sh
 scripts/stretch.sh
 settings_RPiHQ.json
 settings_ZWO.json
+.vscode/*
