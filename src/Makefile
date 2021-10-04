@@ -44,7 +44,7 @@ endif
 
 USB=$(shell pkg-config --cflags --libs libusb-1.0)
 ifeq (,$(USB))
-  $(error Did not find USB Libraries, try 'make deps')
+  $(error Did not find USB Libraries, try 'sudo make deps')
 endif
 
 DEFS = -D_LIN -D_DEBUG -DGLIBC_20
@@ -52,41 +52,43 @@ CFLAGS = -Wall -Wno-psabi -g -O2 -lpthread
 OPENCV = $(shell pkg-config --exists opencv && pkg-config --cflags --libs opencv || (pkg-config --exists opencv4 && pkg-config --cflags --libs opencv4))
 
 ifeq (,$(OPENCV))
-  $(error Did not find any OpenCV Libraries, try 'make deps')
+  $(error Did not find any OpenCV Libraries, try 'sudo make deps')
 endif
+
+ZWOSDK = -I./include
 
 ifeq ($(platform), armv6l)
   CC = arm-linux-gnueabihf-g++
   AR= arm-linux-gnueabihf-ar
   CFLAGS += -march=armv6
   CFLAGS += -lrt
-  ZWOSDK = -Llib/armv6 -I./include
+  ZWOSDK += -Llib/armv6
 endif
 
 ifeq ($(platform), armv7l)
   CC = arm-linux-gnueabihf-g++
   AR= arm-linux-gnueabihf-ar
   CFLAGS += -march=armv7 -mthumb
-  ZWOSDK = -Llib/armv7 -I./include
+  ZWOSDK = -Llib/armv7
 endif
 
 #Ubuntu 20.04 added by Jos Wennmacker
 ifeq ($(platform), aarch64)
   CC = g++
   AR= ar
-  ZWOSDK = -Llib/armv8 -I./include
+  ZWOSDK = -Llib/armv8
 endif
 
 ifeq ($(platform), x86_64)
   CC = g++
   AR= ar
-  ZWOSDK = -Llib/x64 -I./include
+  ZWOSDK = -Llib/x64
 endif
 
 ifeq ($(platform), i386)
   CC = g++
   AR= ar
-  ZWOSDK = -Llib/x86 -I./include
+  ZWOSDK = -Llib/x86
 endif
 
 ifeq (,$(CC))
@@ -107,24 +109,24 @@ libsunwait.o:
 	@echo `date +%F\ %R:%S` Done.
 #@$(MAKE) -C libsunwait-src all
 
-capture:capture.cpp
+capture:capture.cpp libsunwait.o
 	@echo `date +%F\ %R:%S` Building capture program...
-	@$(CC) capture.cpp libsunwait.o -o capture $(CFLAGS) $(OPENCV) -lASICamera2 $(USB)
+	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV) -lASICamera2 $(USB)
 	@echo `date +%F\ %R:%S` Done.
 
-capture_RPiHQ:capture_RPiHQ.cpp
+capture_RPiHQ:capture_RPiHQ.cpp libsunwait.o
 	@echo `date +%F\ %R:%S` Building capture_RPiHQ program...
-	@$(CC)  capture_RPiHQ.cpp libsunwait.o -o capture_RPiHQ $(CFLAGS) $(OPENCV)
+	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV)
 	@echo `date +%F\ %R:%S` Done.
 
 startrails:startrails.cpp
 	@echo `date +%F\ %R:%S` Building startrails program...
-	@$(CC)  startrails.cpp -o startrails $(CFLAGS) $(OPENCV)
+	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV)
 	@echo `date +%F\ %R:%S` Done.
 
 keogram:keogram.cpp
 	@echo `date +%F\ %R:%S` Building keogram program...
-	@$(CC)  keogram.cpp -o keogram $(CFLAGS) $(OPENCV)
+	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV)
 	@echo `date +%F\ %R:%S` Done.
 
 install:
