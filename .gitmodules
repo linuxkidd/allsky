@@ -1,3 +1,3 @@
-[submodule "src/sunwait-src"]
-	path = src/sunwait-src
-	url = https://github.com/risacher/sunwait
+[submodule "src/libsunwait-src"]
+	path = src/libsunwait-src
+	url = https://github.com/joxda/libsunwait
