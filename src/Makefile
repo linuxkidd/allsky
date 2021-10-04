@@ -39,7 +39,7 @@ ifneq ($(shell id -u), 0)
 	@echo Please run \'sudo make deps\'
 else
 	@echo `date +%F\ %R:%S` Installing build dependencies...
-	@apt update && apt -y install libopencv-dev libusb-dev libusb-1.0-0-dev ffmpeg gawk lftp jq imagemagick
+	@apt update && apt -y install libopencv-dev libusb-dev libusb-1.0-0-dev cmake ffmpeg gawk lftp jq imagemagick
 endif
 
 USB=$(shell pkg-config --cflags --libs libusb-1.0)
@@ -98,23 +98,23 @@ CFLAGS += $(DEFS) $(ZWOSDK)
 
 all:libsunwait capture capture_RPiHQ startrails keogram
 
-libsunwait:
+libsunwait.o:
 	@echo `date +%F\ %R:%S` Initializing libsunwait submodule...
 	@git submodule init
 	@git submodule update
 	@echo `date +%F\ %R:%S` Building libsunwait...
-	@cmake libsunwait-src
-	@$(MAKE) -C libsunwait-src
+	@$(MAKE) libsunwait-src/libsunwait.cpp -o $@
 	@echo `date +%F\ %R:%S` Done.
+#@$(MAKE) -C libsunwait-src all
 
 capture:capture.cpp
 	@echo `date +%F\ %R:%S` Building capture program...
-	@$(CC)  capture.cpp -o capture $(CFLAGS) $(OPENCV) -lASICamera2 $(USB)
+	@$(CC) capture.cpp libsunwait.o -o capture $(CFLAGS) $(OPENCV) -lASICamera2 $(USB)
 	@echo `date +%F\ %R:%S` Done.
 
 capture_RPiHQ:capture_RPiHQ.cpp
 	@echo `date +%F\ %R:%S` Building capture_RPiHQ program...
-	@$(CC)  capture_RPiHQ.cpp -o capture_RPiHQ $(CFLAGS) $(OPENCV)
+	@$(CC)  capture_RPiHQ.cpp libsunwait.o -o capture_RPiHQ $(CFLAGS) $(OPENCV)
 	@echo `date +%F\ %R:%S` Done.
 
 startrails:startrails.cpp
