@@ -19,6 +19,7 @@
 #include <signal.h>
 #include <fstream>
 #include <locale.h>
+#include "libsunwait-src/libsunwait.hpp"
 
 #define KNRM "\x1B[0m"
 #define KRED "\x1B[31m"
@@ -584,15 +585,15 @@ void waitToFix(char const *msg)
 // Calculate if it is day or night
 void calculateDayOrNight(const char *latitude, const char *longitude, const char *angle)
 {
-    char sunwaitCommand[128];
-    // don't need "exit" or "set".
-    sprintf(sunwaitCommand, "sunwait poll angle %s %s %s", angle, latitude, longitude);
-    dayOrNight = exec(sunwaitCommand);
-    dayOrNight.erase(std::remove(dayOrNight.begin(), dayOrNight.end(), '\n'), dayOrNight.end());
-
-    if (dayOrNight != "DAY" && dayOrNight != "NIGHT")
+    SunWait sunwait (latitude, longitude, atoi(angle));
+    int sw_exit = sunwait.poll();
+    if ( sw_exit == EXIT_DAY )
+        dayOrNight = "DAY";
+    else if ( sw_exit == EXIT_NIGHT )
+        dayOrNight = "NIGHT";
+    else if ( sw_exit == EXIT_ERROR || sw_exit == EXIT_OK )
     {
-        sprintf(debugText, "*** ERROR: dayOrNight isn't DAY or NIGHT, it's '%s'\n", dayOrNight.c_str());
+        sprintf(debugText, "*** ERROR: dayOrNight isn't DAY or NIGHT, it's '%d'\n", sw_exit);
         waitToFix(debugText);
         closeUp(2);
     }
@@ -601,30 +602,13 @@ void calculateDayOrNight(const char *latitude, const char *longitude, const char
 // Calculate how long until nighttime.
 int calculateTimeToNightTime(const char *latitude, const char *longitude, const char *angle)
 {
-    std::string t;
-    char sunwaitCommand[128];	// returns "hh:mm, hh:mm" (sunrise, sunset)
-    sprintf(sunwaitCommand, "sunwait list angle %s %s %s | awk '{print $2}'", angle, latitude, longitude);
-    t = exec(sunwaitCommand);
-    t.erase(std::remove(t.begin(), t.end(), '\n'), t.end());
+    time_t my_time = time(NULL);
+    tm *ltm = localtime(&my_time);
 
-    int h=0, m=0, secs;
-    sscanf(t.c_str(), "%d:%d", &h, &m);
-    secs = (h*60*60) + (m*60);
-
-    char *now = getTime("%H:%M");
-    int hNow=0, mNow=0, secsNow;
-    sscanf(now, "%d:%d", &hNow, &mNow);
-    secsNow = (hNow*60*60) + (mNow*60);
-
-    // Handle the (probably rare) case where nighttime is tomorrow
-    if (secsNow > secs)
-    {
-        return(secs + (60*60*24) - secsNow);
-    }
-    else
-    {
-        return(secs - secsNow);
-    }
+    SunWait sunwait (latitude, longitude, atoi(angle));
+    std::pair<std::vector<time_t>, std::vector<time_t>> RiseSet;
+    RiseSet = sunwait.list(1, ltm->tm_year - 100, 1 + ltm->tm_mon, ltm->tm_mday);
+    return RiseSet.second[0] - my_time;
 }
 
 void writeToLog(int val)

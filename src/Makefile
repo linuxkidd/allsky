@@ -96,15 +96,15 @@ endif
 
 CFLAGS += $(DEFS) $(ZWOSDK)
 
-all:capture capture_RPiHQ startrails keogram sunwait
+all:libsunwait capture capture_RPiHQ startrails keogram
 
-sunwait:
-	@echo `date +%F\ %R:%S` Initializing sunwait submodule...
+libsunwait:
+	@echo `date +%F\ %R:%S` Initializing libsunwait submodule...
 	@git submodule init
 	@git submodule update
-	@echo `date +%F\ %R:%S` Building sunwait...
-	@$(MAKE) -C sunwait-src
-	@cp sunwait-src/sunwait .
+	@echo `date +%F\ %R:%S` Building libsunwait...
+	@cmake libsunwait-src
+	@$(MAKE) -C libsunwait-src
 	@echo `date +%F\ %R:%S` Done.
 
 capture:capture.cpp
@@ -143,7 +143,6 @@ else
 	  install -o $(SUDO_USER) -g $(SUDO_USER) keogram ../; \
 	  install -o $(SUDO_USER) -g $(SUDO_USER) startrails ../; \
 	fi
-	@install sunwait $(DESTDIR)$(bindir)
 endif # sudo / root check
 
 clean:
