@@ -31,7 +31,7 @@ deps:
 
 install:
 ifneq ($(ROOTCHECK), 0)
-	@echo This must be ran with root permissions.
+	@echo This must be run with root permissions.
 	@echo Please run \'sudo make install\'
 else
 	@echo `date +%F\ %R:%S` Starting install...
@@ -39,9 +39,14 @@ else
 	@make -C config_repo $@
 	@make -C notification_images $@
 	@make -C scripts $@
+	@if [ $(PKGBUILD) -eq 1 ]; then \
+	  [ ! -e $(DESTDIR)$(libexecdir) ] && mkdir -p $(DESTDIR)$(libexecdir) \
+	  install allsky.sh $(DESTDIR)$(libexecdir)/allsky.sh; \
+        fi
 	@if [ $(PKGBUILD) -ne 1 ]; then \
 	  echo `date +%F\ %R:%S` Setting directory permissions...; \
-	  chown $(SUDO_USER):$(SUDO_USER) ./ ; \
+	  [ ! -e tmp ] && mkdir tmp; \
+	  chown -R $(SUDO_USER):$(SUDO_USER) ./ ; \
 	  echo ""; \
 	  echo ""; \
 	  echo `date +%F\ %R:%S` It is recommended to reboot now, please issue \'sudo reboot\'; \
