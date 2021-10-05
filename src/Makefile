@@ -123,7 +123,7 @@ capture:capture.cpp libsunwait.a
 	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV) $(LIBSUN) -lASICamera2 $(USB)
 	@echo `date +%F\ %R:%S` Done.
 
-capture_RPiHQ:capture_RPiHQ.cpp
+capture_RPiHQ:capture_RPiHQ.cpp libsunwait.a
 	@echo `date +%F\ %R:%S` Building capture_RPiHQ program...
 	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV) $(LIBSUN)
 	@echo `date +%F\ %R:%S` Done.
@@ -138,11 +138,12 @@ keogram:keogram.cpp
 	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV)
 	@echo `date +%F\ %R:%S` Done.
 
-install:
 ifneq ($(ROOTCHECK), 0)
+install:
 	@echo This must be ran with root permissions.
 	@echo Please run \'sudo make install\'
 else
+install:
 	@echo `date +%F\ %R:%S` Copying binaries...
 	@if [ $(PKGBUILD) -eq 1 ]; then \
 	  [ ! -e $(DESTDIR)$(bindir) ] && mkdir -p $(DESTDIR)$(bindir); \
@@ -156,6 +157,7 @@ else
 	  install -o $(SUDO_USER) -g $(SUDO_USER) keogram ../; \
 	  install -o $(SUDO_USER) -g $(SUDO_USER) startrails ../; \
 	fi
+
 endif # sudo / root check
 
 clean:
