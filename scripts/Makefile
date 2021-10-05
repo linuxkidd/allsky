@@ -20,35 +20,27 @@ ifeq ($(PKGBUILD),)
   PKGBUILD=0
 endif
 
-all:
-	@echo `date +%F\ %R:%S` nothing to do for all...
+%:
+	@echo `date +%F\ %R:%S` nothing to do for $@
 
-clean:
-	rm -f ftp-settings.sh
-
-install:
 ifneq ($(ROOTCHECK), 0)
-	@echo This must be ran with root permissions.
+install uninstall:
+	@echo This must be run with root permissions.
 	@echo Please run \'sudo make install\'
 else
-	@echo `date +%F\ %R:%S` Setting up scripts...
-	@if [ $(PKGBUILD) -eq 1 ]; then \
-	  [ ! -e $(DESTDIR)$(libexecdir) ] && mkdir -p $(DESTDIR)$(libexecdir); \
-	  [ ! -e $(DESTDIR)$(sysconfdir)/allsky ] && mkdir -p $(DESTDIR)$(sysconfdir)/allsky; \
-	  install allsky.sh.repo $(DESTDIR)$(libexecdir)/allsky.sh; \
-	else \
-	  if [ ! -e ../allsky.sh ]; then install -o $(SUDO_USER) -g $(SUDO_USER) allsky.sh.repo ../allsky.sh; fi; \
-	fi
 
+install:
+	@echo `date +%F\ %R:%S` Setting up scripts...
 	@chmod 755 *.sh
 	@if [ $(PKGBUILD) -eq 1 ]; then \
 	  [ ! -e $(DESTDIR)$(libexecdir) ] && mkdir -p $(DESTDIR)$(libexecdir); \
-	  [ ! -e $(DESTDIR)$(sysconfdir)/allsky ] && mkdir -p $(DESTDIR)$(sysconfdir)/allsky; \
 	  install *.sh $(DESTDIR)$(libexecdir)/; \
 	fi
-	@echo `date +%F\ %R:%S` Copying default ftp-settings.sh
-	@if [ ftp-settings.sh ] && [ $(PKGBUILD) -ne 1 ]; then \
-	  install -m 0644 -o $(SUDO_USER) -g $(SUDO_USER) ftp-settings.sh.repo ftp-settings.sh; fi
-	@if [ $(PKGBUILD) -eq 1 ]; then \
-	  install -m 0644 ftp-settings.sh.repo $(DESTDIR)$(sysconfdir)/allsky/ftp-settings.sh; fi
-endif
+
+ifeq ($(PKGBUILD),1)
+uninstall:
+	@echo `date +%F\ %R:%S` Removing scripts...
+	@rm -rf $(DESTDIR)$(libexecdir)
+
+endif # PKGBUILD
+endif # ROOTCHECK

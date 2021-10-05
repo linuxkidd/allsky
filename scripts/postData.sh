@@ -2,9 +2,9 @@
 
 # TODO Needs fixing when civil twilight happens after midnight
 
-source "${ALLSKY_HOME}/config/variables.sh"
+source "${ALLSKY_HOME}/variables.sh"
 source "${ALLSKY_CONFIG}/config.sh"
-source "${ALLSKY_SCRIPTS}/ftp-settings.sh"
+source "${ALLSKY_CONFIG}/ftp-settings.sh"
 
 ME="$(basename "${BASH_ARGV0}")"
 
@@ -32,4 +32,4 @@ OUTPUT_FILE="${ALLSKY_TMP}/${FILE}"
 ) > "${OUTPUT_FILE}"
 
 # PD == Post Data
-"${ALLSKY_SCRIPTS}/upload.sh" --silent "${OUTPUT_FILE}" "${IMG_DIR}" "${FILE}" "PD"
+"${ALLSKY_SCRIPTS}/upload.sh" --silent "${OUTPUT_FILE}" "${IMGDIR}" "${FILE}" "PD"

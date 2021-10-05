@@ -9,19 +9,14 @@ sharedir = ${exec_prefix}/share/allsky
 
 PDIR = $(shell dirname "$$PWD")
 MYDIR = $(shell basename "$$PWD")
-NLU = $(shell basename "$(PDIR)")
 RIGHTPATH = 1
 
 ifneq (src,$(MYDIR))
   RIGHTPATH = 0
 endif
-ifneq (allsky,$(NLU))
-  RIGHTPATH = 0
-endif
 
 ifneq (1,$(RIGHTPATH))
-  @echo Unexpected directory structure.
-  @echo This should be in allsky/src directory.
+  $(error Unexpected directory structure. This should be in allsky/src directory.)
 else
 
 .DEFAULT_GOAL := all
@@ -31,6 +26,10 @@ ifneq ($(ROOTCHECK),0)
   ifeq ($(PKGBUILD),1)
     ROOTCHECK=0
   endif
+endif
+
+ifeq ($(PKGBUILD),)
+  PKGBUILD=0
 endif
 
 deps:
@@ -100,48 +99,48 @@ endif
 
 CFLAGS += $(DEFS) $(ZWOSDK)
 
+%:
+	@echo `date +%F\ %R:%S` nothing to do for $@
+
 all:libsunwait.a capture capture_RPiHQ startrails keogram
 
 LIBSUN = -I./libsunwait-src -L./ -lsunwait
 
-#libsunwait.o:libsunwait-src/libsunwait.cpp
-#sun.o:libsunwait-src/sun.cpp
-#sunarc.o:libsunwait-src/sunarc.cpp
 %.o:libsunwait-src/%.cpp
 	@echo `date +%F\ %R:%S` Building $@
 	@$(CC) -c $? -o $@ $(CFLAGS) -UDEFAULT_LONGITUDE -UDEFAULT_LATITUDE -UNOT_SET -std=gnu++11 -I./libsunwait-src
 	@echo `date +%F\ %R:%S` complete.
 
-#.PHONY: build_sunwait
-
 libsunwait.a:sun.o sunarc.o libsunwait.o 
 	@$(AR) qc $@ $?
 	@$(RANLIB) libsunwait.a
 
-capture:capture.cpp libsunwait.a
-	@echo `date +%F\ %R:%S` Building capture program...
-	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV) $(LIBSUN) -lASICamera2 $(USB)
+capture:libsunwait.a
+	@echo `date +%F\ %R:%S` Building $@ program...
+	@$(CC) $@.cpp -o $@ $(CFLAGS) $(OPENCV) $(LIBSUN) -lASICamera2 $(USB)
 	@echo `date +%F\ %R:%S` Done.
 
-capture_RPiHQ:capture_RPiHQ.cpp libsunwait.a
-	@echo `date +%F\ %R:%S` Building capture_RPiHQ program...
-	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV) $(LIBSUN)
+capture_RPiHQ:libsunwait.a
+	@echo `date +%F\ %R:%S` Building $@ program...
+	@$(CC) $@.cpp -o $@ $(CFLAGS) $(OPENCV) $(LIBSUN)
 	@echo `date +%F\ %R:%S` Done.
 
-startrails:startrails.cpp
-	@echo `date +%F\ %R:%S` Building startrails program...
-	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV)
+startrails keogram:
+	@echo `date +%F\ %R:%S` Building $@ program...
+	@$(CC) $@.cpp -o $@ $(CFLAGS) $(OPENCV)
 	@echo `date +%F\ %R:%S` Done.
 
-keogram:keogram.cpp
-	@echo `date +%F\ %R:%S` Building keogram program...
-	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV)
-	@echo `date +%F\ %R:%S` Done.
+symlink: all
+	@echo `date +%F\ %R:%S` Symlinking binaries...
+	@ln -s $$PWD/capture ../
+	@ln -s $$PWD/capture_RPiHQ ../
+	@ln -s $$PWD/keogram ../
+	@ln -s $$PWD/startrails ../
 
 ifneq ($(ROOTCHECK), 0)
 install:
-	@echo This must be ran with root permissions.
-	@echo Please run \'sudo make install\'
+	@echo This must be run with root permissions.
+	@echo Please run \'sudo make $@\'
 else
 install:
 	@echo `date +%F\ %R:%S` Copying binaries...
@@ -156,6 +155,23 @@ install:
 	  install -o $(SUDO_USER) -g $(SUDO_USER) capture_RPiHQ ../; \
 	  install -o $(SUDO_USER) -g $(SUDO_USER) keogram ../; \
 	  install -o $(SUDO_USER) -g $(SUDO_USER) startrails ../; \
+	fi
+	@install sunwait $(DESTDIR)$(bindir)
+
+uninstall:
+	@echo `date +%F\ %R:%S` Removing binaries...
+	@if [ $(PKGBUILD) -eq 1 ]; then \
+	  rm -f $(DESTDIR)$(bindir)/capture; \
+	  rm -f $(DESTDIR)$(bindir)/capture_RPiHQ; \
+	  rm -f $(DESTDIR)$(bindir)/keogram; \
+	  rm -f $(DESTDIR)$(bindir)/startrails; \
+	  rm -f $(DESTDIR)$(bindir)/sunwait; \
+	else \
+	  rm -f ../capture; \
+	  rm -f ../capture_RPiHQ; \
+	  rm -f ../keogram; \
+	  rm -f ../startrails; \
+	  rm -f $(DESTDIR)$(bindir)/startrails; \
 	fi
 
 endif # sudo / root check
