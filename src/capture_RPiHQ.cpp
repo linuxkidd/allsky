@@ -47,7 +47,7 @@ int numExposures = 0;	// how many valid pictures have we taken so far?
 
 // Some command-line and other option definitions needed outside of main():
 int tty				= 0;	// 1 if we're on a tty (i.e., called from the shell prompt).
-#define NOT_SET			  -1	// signifies something isn't set yet
+#define CAPTURE_NOT_SET			  -1	// signifies something isn't set yet
 #define DEFAULT_NOTIFICATIONIMAGES 1
 int notificationImages		= DEFAULT_NOTIFICATIONIMAGES;
 
@@ -613,30 +613,30 @@ int main(int argc, char *argv[])
 	int height            = 0;
 	int dayBin            = 1;
 	int nightBin          = 2;
-	int currentBin        = NOT_SET;
+	int currentBin        = CAPTURE_NOT_SET;
 	int asiDayExposure    = 32;	// milliseconds
 	int asiNightExposure  = 60000000;
-	int currentExposure   = NOT_SET;
+	int currentExposure   = CAPTURE_NOT_SET;
 	int asiNightAutoExposure = 0;
 	int asiDayAutoExposure= 1;
 	int currentAutoExposure = 0;
 	int asiAutoFocus      = 0;
 	double asiNightGain   = 4;
 	double asiDayGain     = 1;
-	double currentGain    = NOT_SET;
+	double currentGain    = CAPTURE_NOT_SET;
 	int asiNightAutoGain  = 0;
 	int asiDayAutoGain    = 0;
-	int currentAutoGain   = NOT_SET;
+	int currentAutoGain   = CAPTURE_NOT_SET;
 	int asiAutoAWB        = 0;
 	int nightDelay        = 10;   // Delay in milliseconds. Default is 10ms
 	int dayDelay          = 15000; // Delay in milliseconds. Default is 15 seconds
-	int currentDelay      = NOT_SET;
+	int currentDelay      = CAPTURE_NOT_SET;
 	double asiWBR         = 2.5;
 	double asiWBB         = 2;
 	int asiGamma          = 50;
 	int asiDayBrightness  = 50;
 	int asiNightBrightness= 50;
-	int currentBrightness = NOT_SET;
+	int currentBrightness = CAPTURE_NOT_SET;
 	int asiFlip           = 0;
 	int asiRotation       = 0;
 	char const *latitude  = "52.57N"; //GPS Coordinates of Limmen, Netherlands where this code was altered

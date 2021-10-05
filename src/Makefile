@@ -91,6 +91,8 @@ ifeq ($(platform), i386)
   ZWOSDK = -Llib/x86
 endif
 
+RANLIB = ranlib
+
 ifeq (,$(CC))
   $(warning Could not identify the proper compiler for your platform.)
   $(error Unknown platform $(platform))
@@ -98,25 +100,32 @@ endif
 
 CFLAGS += $(DEFS) $(ZWOSDK)
 
-all:libsunwait capture capture_RPiHQ startrails keogram
+all:libsunwait.a capture capture_RPiHQ startrails keogram
 
-libsunwait.o:
-	@echo `date +%F\ %R:%S` Initializing libsunwait submodule...
-	@git submodule init
-	@git submodule update
-	@echo `date +%F\ %R:%S` Building libsunwait...
-	@$(MAKE) libsunwait-src/libsunwait.cpp -o $@
-	@echo `date +%F\ %R:%S` Done.
-#@$(MAKE) -C libsunwait-src all
+LIBSUN = -I./libsunwait-src -L./ -lsunwait
 
-capture:capture.cpp libsunwait.o
+#libsunwait.o:libsunwait-src/libsunwait.cpp
+#sun.o:libsunwait-src/sun.cpp
+#sunarc.o:libsunwait-src/sunarc.cpp
+%.o:libsunwait-src/%.cpp
+	@echo `date +%F\ %R:%S` Building $@
+	@$(CC) -c $? -o $@ $(CFLAGS) -UDEFAULT_LONGITUDE -UDEFAULT_LATITUDE -UNOT_SET -std=gnu++11 -I./libsunwait-src
+	@echo `date +%F\ %R:%S` complete.
+
+#.PHONY: build_sunwait
+
+libsunwait.a:sun.o sunarc.o libsunwait.o 
+	@$(AR) qc $@ $?
+	@$(RANLIB) libsunwait.a
+
+capture:capture.cpp libsunwait.a
 	@echo `date +%F\ %R:%S` Building capture program...
-	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV) -lASICamera2 $(USB)
+	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV) $(LIBSUN) -lASICamera2 $(USB)
 	@echo `date +%F\ %R:%S` Done.
 
-capture_RPiHQ:capture_RPiHQ.cpp libsunwait.o
+capture_RPiHQ:capture_RPiHQ.cpp
 	@echo `date +%F\ %R:%S` Building capture_RPiHQ program...
-	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV)
+	@$(CC) $? -o $@ $(CFLAGS) $(OPENCV) $(LIBSUN)
 	@echo `date +%F\ %R:%S` Done.
 
 startrails:startrails.cpp
@@ -137,17 +146,19 @@ else
 	@echo `date +%F\ %R:%S` Copying binaries...
 	@if [ $(PKGBUILD) -eq 1 ]; then \
 	  [ ! -e $(DESTDIR)$(bindir) ] && mkdir -p $(DESTDIR)$(bindir); \
-    install capture $(DESTDIR)$(bindir); \
+	  install capture $(DESTDIR)$(bindir); \
+	  install capture_RPiHQ $(DESTDIR)$(bindir); \
 	  install keogram $(DESTDIR)$(bindir); \
 	  install startrails $(DESTDIR)$(bindir); \
 	else \
 	  install -o $(SUDO_USER) -g $(SUDO_USER) capture ../; \
+	  install -o $(SUDO_USER) -g $(SUDO_USER) capture_RPiHQ ../; \
 	  install -o $(SUDO_USER) -g $(SUDO_USER) keogram ../; \
 	  install -o $(SUDO_USER) -g $(SUDO_USER) startrails ../; \
 	fi
 endif # sudo / root check
 
 clean:
-	rm -f capture capture_RPiHQ startrails keogram *.o
+	rm -f capture capture_RPiHQ startrails keogram *.o *.a
 
 endif # Correct directory structure check
