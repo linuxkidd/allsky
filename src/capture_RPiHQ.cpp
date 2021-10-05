@@ -629,14 +629,7 @@ int main(int argc, char *argv[])
 	int currentAutoGain   = CAPTURE_NOT_SET;
 	int asiAutoAWB        = 0;
 	int nightDelay        = 10;   // Delay in milliseconds. Default is 10ms
-	int dayDelay          = 15000; // Delay in milliseconds. Default is 15 seconds
 	int currentDelay      = CAPTURE_NOT_SET;
-	double asiWBR         = 2.5;
-	double asiWBB         = 2;
-	int asiGamma          = 50;
-	int asiDayBrightness  = 50;
-	int asiNightBrightness= 50;
-	int currentBrightness = CAPTURE_NOT_SET;
 	int asiFlip           = 0;
 	int asiRotation       = 0;
 	char const *latitude  = "52.57N"; //GPS Coordinates of Limmen, Netherlands where this code was altered
