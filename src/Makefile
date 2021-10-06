@@ -162,7 +162,6 @@ install:
 	  install -o $(SUDO_USER) -g $(SUDO_USER) keogram ../; \
 	  install -o $(SUDO_USER) -g $(SUDO_USER) startrails ../; \
 	fi
-	@install sunwait $(DESTDIR)$(bindir)
 
 uninstall:
 	@echo `date +%F\ %R:%S` Removing binaries...
