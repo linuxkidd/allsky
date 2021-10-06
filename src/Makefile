@@ -38,7 +38,7 @@ ifneq ($(shell id -u), 0)
 	@echo Please run \'sudo make deps\'
 else
 	@echo `date +%F\ %R:%S` Installing build dependencies...
-	@apt update && apt -y install libopencv-dev libusb-dev libusb-1.0-0-dev cmake ffmpeg gawk lftp jq imagemagick
+	@apt update && apt -y install libopencv-dev libusb-dev libusb-1.0-0-dev ffmpeg gawk lftp jq imagemagick
 endif
 
 USB=$(shell pkg-config --cflags --libs libusb-1.0)
