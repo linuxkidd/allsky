@@ -170,7 +170,6 @@ uninstall:
 	  rm -f $(DESTDIR)$(bindir)/capture_RPiHQ; \
 	  rm -f $(DESTDIR)$(bindir)/keogram; \
 	  rm -f $(DESTDIR)$(bindir)/startrails; \
-	  rm -f $(DESTDIR)$(bindir)/sunwait; \
 	else \
 	  rm -f ../capture; \
 	  rm -f ../capture_RPiHQ; \
