@@ -19,10 +19,7 @@
 #include <signal.h>
 #include <fstream>
 #include <locale.h>
-<<<<<<< HEAD
 #include "libsunwait-src/libsunwait.hpp"
-=======
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
 
 #define KNRM "\x1B[0m"
 #define KRED "\x1B[31m"
@@ -58,11 +55,7 @@ pthread_mutex_t mtx_SaveImg;
 pthread_cond_t cond_SatrtSave;
 
 // These are global so they can be used by other routines.
-<<<<<<< HEAD
 #define CAPTURE_NOT_SET -1	// signifies something isn't set yet
-=======
-#define NOT_SET -1	// signifies something isn't set yet
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
 ASI_CONTROL_CAPS ControlCaps;
 void *retval;
 int gotSignal            = 0;		// did we get a SIGINT (from keyboard) or SIGTERM (from service)?
@@ -71,11 +64,7 @@ int CamNum               = 0;
 pthread_t thread_display = 0;
 pthread_t hthdSave       = 0;
 int numExposures         = 0;	// how many valid pictures have we taken so far?
-<<<<<<< HEAD
 int currentGain          = CAPTURE_NOT_SET;
-=======
-int currentGain          = NOT_SET;
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
 
 // Some command-line and other option definitions needed outside of main():
 int tty = 0;	// 1 if we're on a tty (i.e., called from the shell prompt).
@@ -99,11 +88,7 @@ int asiNightMaxExposure    = DEFAULT_ASINIGHTMAXEXPOSURE;
 int gainTransitionTime     = DEFAULT_GAIN_TRANSITION_TIME;
 ASI_BOOL currentAutoExposure = ASI_FALSE;	// is Auto Exposure currently on or off?
 
-<<<<<<< HEAD
 long cameraMaxAutoExposureUS  = CAPTURE_NOT_SET;	// camera's max auto exposure in us
-=======
-long cameraMaxAutoExposureUS  = NOT_SET;	// camera's max auto exposure in us
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
 #ifdef USE_HISTOGRAM
 #define DEFAULT_BOX_SIZEX       500
 #define DEFAULT_BOX_SIZEY       500
@@ -138,11 +123,7 @@ ASI_ERROR_CODE setControl(int CamNum, ASI_CONTROL_TYPE control, long value, ASI_
 
 #ifdef USE_HISTOGRAM
         // Keep track of the camera's max auto exposure so we don't try to exceed it.
-<<<<<<< HEAD
         if (ControlCaps.ControlType == ASI_AUTO_MAX_EXP && cameraMaxAutoExposureUS == CAPTURE_NOT_SET)
-=======
-        if (ControlCaps.ControlType == ASI_AUTO_MAX_EXP && cameraMaxAutoExposureUS == NOT_SET)
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
         {
             // MaxValue is in MS so convert to microseconds
             cameraMaxAutoExposureUS = ControlCaps.MaxValue * US_IN_MS;
@@ -464,11 +445,7 @@ long actualTemp = 0;			// actual sensor temp, per the camera
 ASI_BOOL bAuto = ASI_FALSE;		// "auto" flag returned by ASIGetControlValue, when we don't care what it is
 
 ASI_BOOL wasAutoExposure = ASI_FALSE;
-<<<<<<< HEAD
 long bufferSize = CAPTURE_NOT_SET;
-=======
-long bufferSize = NOT_SET;
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
 
 ASI_ERROR_CODE takeOneExposure(
         int cameraId,
@@ -608,7 +585,6 @@ void waitToFix(char const *msg)
 // Calculate if it is day or night
 void calculateDayOrNight(const char *latitude, const char *longitude, const char *angle)
 {
-<<<<<<< HEAD
     SunWait sunwait (latitude, longitude, atoi(angle));
     int sw_exit = sunwait.poll();
     if ( sw_exit == EXIT_DAY )
@@ -618,17 +594,6 @@ void calculateDayOrNight(const char *latitude, const char *longitude, const char
     else if ( sw_exit == EXIT_ERROR || sw_exit == EXIT_OK )
     {
         sprintf(debugText, "*** ERROR: dayOrNight isn't DAY or NIGHT, it's '%d'\n", sw_exit);
-=======
-    char sunwaitCommand[128];
-    // don't need "exit" or "set".
-    sprintf(sunwaitCommand, "sunwait poll angle %s %s %s", angle, latitude, longitude);
-    dayOrNight = exec(sunwaitCommand);
-    dayOrNight.erase(std::remove(dayOrNight.begin(), dayOrNight.end(), '\n'), dayOrNight.end());
-
-    if (dayOrNight != "DAY" && dayOrNight != "NIGHT")
-    {
-        sprintf(debugText, "*** ERROR: dayOrNight isn't DAY or NIGHT, it's '%s'\n", dayOrNight.c_str());
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
         waitToFix(debugText);
         closeUp(2);
     }
@@ -637,7 +602,6 @@ void calculateDayOrNight(const char *latitude, const char *longitude, const char
 // Calculate how long until nighttime.
 int calculateTimeToNightTime(const char *latitude, const char *longitude, const char *angle)
 {
-<<<<<<< HEAD
     time_t my_time = time(NULL);
     tm *ltm = localtime(&my_time);
 
@@ -645,32 +609,6 @@ int calculateTimeToNightTime(const char *latitude, const char *longitude, const 
     std::pair<std::vector<time_t>, std::vector<time_t>> RiseSet;
     RiseSet = sunwait.list(1, ltm->tm_year - 100, 1 + ltm->tm_mon, ltm->tm_mday);
     return RiseSet.second[0] - my_time;
-=======
-    std::string t;
-    char sunwaitCommand[128];	// returns "hh:mm, hh:mm" (sunrise, sunset)
-    sprintf(sunwaitCommand, "sunwait list angle %s %s %s | awk '{print $2}'", angle, latitude, longitude);
-    t = exec(sunwaitCommand);
-    t.erase(std::remove(t.begin(), t.end(), '\n'), t.end());
-
-    int h=0, m=0, secs;
-    sscanf(t.c_str(), "%d:%d", &h, &m);
-    secs = (h*60*60) + (m*60);
-
-    char *now = getTime("%H:%M");
-    int hNow=0, mNow=0, secsNow;
-    sscanf(now, "%d:%d", &hNow, &mNow);
-    secsNow = (hNow*60*60) + (mNow*60);
-
-    // Handle the (probably rare) case where nighttime is tomorrow
-    if (secsNow > secs)
-    {
-        return(secs + (60*60*24) - secsNow);
-    }
-    else
-    {
-        return(secs - secsNow);
-    }
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
 }
 
 void writeToLog(int val)
@@ -906,11 +844,7 @@ const char *locale = DEFAULT_LOCALE;
 #define DEFAULT_NIGHTBIN         1
     int dayBin                 = DEFAULT_DAYBIN;
     int nightBin               = DEFAULT_NIGHTBIN;
-<<<<<<< HEAD
     int currentBin             = CAPTURE_NOT_SET;
-=======
-    int currentBin             = NOT_SET;
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
 
 #define DEFAULT_IMAGE_TYPE       1
 #define AUTO_IMAGE_TYPE         99	// needs to match what's in the camera_settings.json file
@@ -923,11 +857,7 @@ const char *locale = DEFAULT_LOCALE;
     // There is no max day autoexposure since daylight exposures are always pretty short.
 #define DEFAULT_ASINIGHTEXPOSURE (5 * US_IN_SEC)	// 5 seconds
     long asiNightExposure      = DEFAULT_ASINIGHTEXPOSURE;
-<<<<<<< HEAD
     long currentExposure       = CAPTURE_NOT_SET;
-=======
-    long currentExposure       = NOT_SET;
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
 #define DEFAULT_NIGHTAUTOEXPOSURE 1
     int asiNightAutoExposure   = DEFAULT_NIGHTAUTOEXPOSURE;	// is it on or off for nighttime?
     // currentAutoExposure is global so is defined outside of main()
@@ -943,11 +873,7 @@ const char *locale = DEFAULT_LOCALE;
     int asiNightMaxGain        = DEFAULT_ASINIGHTMAXGAIN;
     ASI_BOOL currentAutoGain   = ASI_FALSE;
 
-<<<<<<< HEAD
     int currentDelay           = CAPTURE_NOT_SET;
-=======
-    int currentDelay           = NOT_SET;
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
 
 #define DEFAULT_ASIWBR           65
     int asiWBR                 = DEFAULT_ASIWBR;
@@ -963,21 +889,12 @@ const char *locale = DEFAULT_LOCALE;
     int asiDayBrightness       = DEFAULT_BRIGHTNESS;
 #define MAX_BRIGHTNESS           600
     int asiNightBrightness     = DEFAULT_BRIGHTNESS;
-<<<<<<< HEAD
     int currentBrightness      = CAPTURE_NOT_SET;
 
 #define CAPTURE_DEFAULT_LATITUDE         "60.7N" //GPS Coordinates of Whitehorse, Yukon where the code was created
     char const *latitude       = CAPTURE_DEFAULT_LATITUDE;
 #define CAPTURE_DEFAULT_LONGITUDE        "135.05W"
     char const *longitude      = CAPTURE_DEFAULT_LONGITUDE;
-=======
-    int currentBrightness      = NOT_SET;
-
-#define DEFAULT_LATITUDE         "60.7N" //GPS Coordinates of Whitehorse, Yukon where the code was created
-    char const *latitude       = DEFAULT_LATITUDE;
-#define DEFAULT_LONGITUDE        "135.05W"
-    char const *longitude      = DEFAULT_LONGITUDE;
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
 #define DEFAULT_ANGLE            "-6"
     // angle of the sun with the horizon
     // (0=sunset, -6=civil twilight, -12=nautical twilight, -18=astronomical twilight)
@@ -1004,11 +921,7 @@ const char *locale = DEFAULT_LOCALE;
     int daytimeCapture         = DEFAULT_DAYTIMECAPTURE;  // are we capturing daytime pictures?
 
     int help                   = 0;
-<<<<<<< HEAD
     int quality                = CAPTURE_NOT_SET;
-=======
-    int quality                = NOT_SET;
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
     int asiFlip                = 0;
     int asiCoolerEnabled       = 0;
     long asiTargetTemp         = 0;
@@ -1434,13 +1347,8 @@ const char *locale = DEFAULT_LOCALE;
         //printf(" -bga = BG Alpha                    - Default =      - Text Background Color Alpha/Transparency 0-100\n");
         printf("\n");
         printf("\n");
-<<<<<<< HEAD
         printf(" -latitude                          - Default = %7s (Whitehorse) - Latitude of the camera.\n", CAPTURE_DEFAULT_LATITUDE);
         printf(" -longitude                         - Default = %7s (Whitehorse) - Longitude of the camera\n", CAPTURE_DEFAULT_LONGITUDE);
-=======
-        printf(" -latitude                          - Default = %7s (Whitehorse) - Latitude of the camera.\n", DEFAULT_LATITUDE);
-        printf(" -longitude                         - Default = %7s (Whitehorse) - Longitude of the camera\n", DEFAULT_LONGITUDE);
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
         printf(" -angle                             - Default = %s - Angle of the sun below the horizon.\n", DEFAULT_ANGLE);
         printf("   -6=civil twilight\n   -12=nautical twilight\n   -18=astronomical twilight\n");
         printf("\n");
@@ -1483,11 +1391,7 @@ const char *locale = DEFAULT_LOCALE;
 
         imagetype = "jpg";
         compression_parameters.push_back(cv::IMWRITE_JPEG_QUALITY);
-<<<<<<< HEAD
         if (quality == CAPTURE_NOT_SET)
-=======
-        if (quality == NOT_SET)
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
         {
             quality = 95;
         } else if (quality > 100)
@@ -1499,11 +1403,7 @@ const char *locale = DEFAULT_LOCALE;
     {
         imagetype = "png";
         compression_parameters.push_back(cv::IMWRITE_PNG_COMPRESSION);
-<<<<<<< HEAD
         if (quality == CAPTURE_NOT_SET)
-=======
-        if (quality == NOT_SET)
->>>>>>> 670647f33d64c1ac83d12aae1e24e34997e05f21
         {
             quality = 3;
         } else if (quality > 9)
