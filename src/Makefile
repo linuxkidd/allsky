@@ -106,12 +106,18 @@ all:libsunwait.a capture capture_RPiHQ startrails keogram
 
 LIBSUN = -I./libsunwait-src -L./ -lsunwait
 
+libsunwait_init:
+	@echo `date +%F\ %R:%S` Initializing libsunwait submodule
+	@git submodule init
+	@git submodule update
+	@touch libsunwait_init
+
 %.o:libsunwait-src/%.cpp
 	@echo `date +%F\ %R:%S` Building $@
 	@$(CC) -c $? -o $@ $(CFLAGS) -UDEFAULT_LONGITUDE -UDEFAULT_LATITUDE -UNOT_SET -std=gnu++11 -I./libsunwait-src
 	@echo `date +%F\ %R:%S` complete.
 
-libsunwait.a:sun.o sunarc.o libsunwait.o 
+libsunwait.a:libsunwait_init sun.o sunarc.o libsunwait.o 
 	@$(AR) qc $@ $?
 	@$(RANLIB) libsunwait.a
 
@@ -177,6 +183,6 @@ uninstall:
 endif # sudo / root check
 
 clean:
-	rm -f capture capture_RPiHQ startrails keogram *.o *.a
+	rm -f capture capture_RPiHQ startrails keogram libsunwait_init *.o *.a
 
 endif # Correct directory structure check
