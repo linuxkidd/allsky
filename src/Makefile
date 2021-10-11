@@ -32,27 +32,11 @@ ifeq ($(PKGBUILD),)
   PKGBUILD=0
 endif
 
-deps:
-ifneq ($(shell id -u), 0)
-	@echo This must be ran with root permissions.
-	@echo Please run \'sudo make deps\'
-else
-	@echo `date +%F\ %R:%S` Installing build dependencies...
-	@apt update && apt -y install libopencv-dev libusb-dev libusb-1.0-0-dev ffmpeg gawk lftp jq imagemagick
-endif
-
-USB=$(shell pkg-config --cflags --libs libusb-1.0)
-ifeq (,$(USB))
-  $(error Did not find USB Libraries, try 'sudo make deps')
-endif
-
 DEFS = -D_LIN -D_DEBUG -DGLIBC_20
 CFLAGS = -Wall -Wno-psabi -g -O2 -lpthread
-OPENCV = $(shell pkg-config --exists opencv && pkg-config --cflags --libs opencv || (pkg-config --exists opencv4 && pkg-config --cflags --libs opencv4))
 
-ifeq (,$(OPENCV))
-  $(error Did not find any OpenCV Libraries, try 'sudo make deps')
-endif
+USB=$(shell pkg-config --exists libusb-1.0 && pkg-config --cflags --libs libusb-1.0)
+OPENCV = $(shell pkg-config --exists opencv && pkg-config --cflags --libs opencv || (pkg-config --exists opencv4 && pkg-config --cflags --libs opencv4))
 
 ZWOSDK = -I./include
 
@@ -99,12 +83,34 @@ endif
 
 CFLAGS += $(DEFS) $(ZWOSDK)
 
-%:
-	@echo `date +%F\ %R:%S` nothing to do for $@
+all:check_deps capture capture_RPiHQ startrails keogram sunwait
 
-all:libsunwait.a capture capture_RPiHQ startrails keogram
+.PHONY : all
+
+ifneq ($(shell id -u), 0)
+deps:
+	echo This must be ran with root permissions.
+	echo Please run 'sudo make deps'
+else
+deps:
+	@echo `date +%F\ %R:%S` Installing build dependencies...
+	@apt update && apt -y install libopencv-dev libusb-dev libusb-1.0-0-dev ffmpeg gawk lftp jq imagemagick
+endif
+
+.PHONY : deps
+
+all:check_deps libsunwait.a capture capture_RPiHQ startrails keogram
 
 LIBSUN = -I./libsunwait-src -L./ -lsunwait
+
+check_deps:
+ifeq (,$(USB))
+	  $(error Did not find USB Libraries, try 'sudo make deps')
+endif
+ifeq (,$(OPENCV))
+	  $(error Did not find any OpenCV Libraries, try 'sudo make deps')
+endif
+.PHONY : check_deps
 
 libsunwait_init:
 	@echo `date +%F\ %R:%S` Initializing libsunwait submodule
@@ -121,17 +127,22 @@ libsunwait.a:libsunwait_init sun.o sunarc.o libsunwait.o
 	@$(AR) qc $@ $?
 	@$(RANLIB) libsunwait.a
 
-capture:libsunwait.a
+capture:check_deps libsunwait.a capture.cpp
 	@echo `date +%F\ %R:%S` Building $@ program...
 	@$(CC) $@.cpp -o $@ $(CFLAGS) $(OPENCV) $(LIBSUN) -lASICamera2 $(USB)
 	@echo `date +%F\ %R:%S` Done.
 
-capture_RPiHQ:libsunwait.a
+capture_RPiHQ:check_deps libsunwait.a capture_RPiHQ.cpp
 	@echo `date +%F\ %R:%S` Building $@ program...
 	@$(CC) $@.cpp -o $@ $(CFLAGS) $(OPENCV) $(LIBSUN)
 	@echo `date +%F\ %R:%S` Done.
 
-startrails keogram:
+keogram:check_deps keogram.cpp
+	@echo `date +%F\ %R:%S` Building $@ program...
+	@$(CC) $@.cpp -o $@ $(CFLAGS) $(OPENCV)
+	@echo `date +%F\ %R:%S` Done.
+
+startrails:check_deps startrails.cpp
 	@echo `date +%F\ %R:%S` Building $@ program...
 	@$(CC) $@.cpp -o $@ $(CFLAGS) $(OPENCV)
 	@echo `date +%F\ %R:%S` Done.
@@ -179,8 +190,13 @@ uninstall:
 	fi
 
 endif # sudo / root check
+.PHONY : install uninstall
 
 clean:
 	rm -f capture capture_RPiHQ startrails keogram libsunwait_init *.o *.a
+.PHONY : clean
 
 endif # Correct directory structure check
+
+%:
+	@echo `date +%F\ %R:%S` nothing to do for $@

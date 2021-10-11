@@ -23,7 +23,7 @@ if [ $# -lt 1 -o $# -gt 2 -o "${1}" = "-h" -o "${1}" = "--help" ] ; then
 	echo "    or:      ${ME} ${TODAY} /media/external/allsky"
 	echo -en "${YELLOW}"
 	echo "'DATE' must be in '${ALLSKY_IMAGES}' unless 'directory' is specified,"
-	echo "in which case 'DATE' must bin in 'directory', i.e., 'directory/DATE'."
+	echo "in which case 'DATE' must be in in 'directory', i.e., 'directory/DATE'."
 	echo -en "${NC}"
 	exit 1
 fi
@@ -47,14 +47,14 @@ if [ -z "${EXTENSION}" ] ; then
 fi
 
 # If you are tuning encoder settings, run this script with KEEP_SEQUENCE, eg.
-#	$ env KEEP_SEQUENCE=1 VCODEC=h264_nvenc ~/allsky/scripts/timelapse.sh ${TODAY} /media/external/allsky/${TODAY}/
+#	$ env KEEP_SEQUENCE=true VCODEC=h264_nvenc ~/allsky/scripts/timelapse.sh ${TODAY} /media/external/allsky/${TODAY}/
 # to keep the sequence directory from being deleted and to reuse the contents
 # of the sequence directory if it looks ok (contains at least 100 files). This
 # might save you some time when running your encoder repeatedly.
 
 SEQUENCE_DIR="${DATE_DIR}/sequence"
 NSEQ=$(ls "${SEQUENCE_DIR}" 2>/dev/null | wc -l )
-if [ -z "$KEEP_SEQUENCE" -o $NSEQ -lt 100 ] ; then
+if [ "$KEEP_SEQUENCE" = "false" -o $NSEQ -lt 100 ] ; then
 	rm -fr "${SEQUENCE_DIR}"
 	mkdir -p "${SEQUENCE_DIR}"
 
@@ -102,24 +102,27 @@ OUTPUT_FILE="${DATE_DIR}/allsky-${DATE}.mp4"
 ffmpeg -y -f image2 \
 	-loglevel ${FFLOG:-warning} \
 	-r ${FPS:-25} \
-	-i ${SEQUENCE_DIR}/%04d.${EXTENSION} \
+	-i "${SEQUENCE_DIR}/%04d.${EXTENSION}" \
 	-vcodec ${VCODEC:-libx264} \
 	-b:v ${TIMELAPSE_BITRATE:-2000k} \
 	-pix_fmt ${PIX_FMT:-yuv420p} \
 	-movflags +faststart \
 	$SCALE \
 	${TIMELAPSE_PARAMETERS} \
-	${OUTPUT_FILE}
+	"${OUTPUT_FILE}" >> "${TMP}" 2>&1
 RET=$?
-if [ $RET -ne 0 ]; then
-	echo -e "\n${RED}*** $ME: ERROR: ffmpeg failed with RET=$RET"
+if [ $RET -ne -0 ]; then
+	echo -e "\n${RED}*** $ME: ERROR: ffmpeg failed."
+	echo "Error log is in '${TMP}'."
+	echo
 	echo "Links in '${SEQUENCE_DIR}' left for debugging."
 	echo -e "Remove them when the problem is fixed.${NC}\n"
 	exit 1
 fi
+[ "${FFLOG}" = "info" ] && cat "${TMP}"	 # if the user wants output, give it to them...
 
-if [ -z "$KEEP_SEQUENCE" ] ; then
-	rm -rf $DIR/sequence
+if [ "${KEEP_SEQUENCE}" = "false" ] ; then
+	rm -rf "${SEQUENCE_DIR}"
 else
 	echo -en "${ME}: ${GREEN}Keeping sequence${NC}\n"
 fi
