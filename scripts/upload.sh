@@ -2,7 +2,6 @@
 
 # Script to upload files.
 # This is a separate script so it can also be used manually to test uploads.
-# Plus, this code was used in several other files and putting it here centralizes it.
 
 # Allow this script to be executed manually, which requires ALLSKY_HOME to be set.
 if [ -z "${ALLSKY_HOME}" ] ; then
@@ -61,53 +60,58 @@ fi
 #		another process. (image.jpg)
 # Slow uplinks also cause problems with web servers that read the file as it's being uploaded.
 
-mkdir -p "${ALLSKY_TMP}"
 LOG="${ALLSKY_TMP}/upload_log.txt"
 
 # Convert to lowercase so we don't care if user specified upper or lowercase.
 PROTOCOL="${PROTOCOL,,}"
-ALLSKY_DEBUG_LEVEL=${ALLSKY_DEBUG_LEVEL:-0}
+
 if [[ "${PROTOCOL}" == "s3" ]] ; then
 	# xxxxxx How do you tell it the DESTINATION_FILE name ?
 	if [ "${SILENT}" = "false" -a "${ALLSKY_DEBUG_LEVEL}" -ge 3 ]; then
 		echo "${ME}: Uploading ${FILE_TO_UPLOAD} to aws ${S3_BUCKET}/${REMOTE_DIR}"
 	fi
 	${AWS_CLI_DIR}/aws s3 cp "${FILE_TO_UPLOAD}" s3://${S3_BUCKET}${REMOTE_DIR} --acl ${S3_ACL} > "${LOG}"
+	RET=$?
 
 elif [[ ${PROTOCOL} == "local" ]] ; then
 	if [ "${SILENT}" = "false" -a "${ALLSKY_DEBUG_LEVEL}" -ge 3 ]; then
 		echo "${ME}: Copying ${FILE_TO_UPLOAD} to ${REMOTE_DIR}/${DESTINATION_FILE}"
 	fi
 	cp "${FILE_TO_UPLOAD}" "${REMOTE_DIR}/${DESTINATION_FILE}"
+	RET=$?
 
 else # sftp/ftp
 	# People sometimes have problems with ftp not working,
 	# so save the commands we use so they can run lftp manually to debug.
 
-	# REMOTE_DIR can be ""; if so, don't add "/"
-	if [ "${REMOTE_DIR}" = "" ]; then
-		SLASH=""
-	else
-		SLASH="/"
-	fi
+	# If REMOTE_DIR isn't null (which it can be) and doesn't already have a trailing "/", append one.
+	[ "${REMOTE_DIR}" != "" -a "${REMOTE_DIR: -1:1}" != "/" ] && REMOTE_DIR="${REMOTE_DIR}/"
+
 	if [ "${SILENT}" = "false" -a "${ALLSKY_DEBUG_LEVEL}" -ge 3 ]; then
-		echo "${ME}: FTP'ing ${FILE_TO_UPLOAD} to ${REMOTE_DIR}${SLASH}${DESTINATION_FILE}"
+		echo "${ME}: FTP'ing ${FILE_TO_UPLOAD} to ${REMOTE_DIR}${DESTINATION_FILE}"
 	fi
 	LFTP_CMDS="${ALLSKY_TMP}/lftp_cmds.txt"
-
+	# COMPATIBILITY CHECK.  New names start with "REMOTE_".
+	# If "REMOTE_HOST" doesn't exist assume the user has the old-style ftp-settings.sh file.
+	# xxxxx THIS CHECK WILL GO AWAY IN THE FUTURE.
+	if [ -z "${REMOTE_HOST}" ]; then
+		REMOTE_HOST="${HOST}"
+		REMOTE_PASSWORD="${PASSWORD}"
+		REMOTE_USER="${USER}"
+	fi
 	(
 		[ "${LFTP_COMMANDS}" != "" ] && echo ${LFTP_COMMANDS}
-		# xxx TODO: escape double quotes in PASSWORD - how?  With \ ?
-		P="${PASSWORD}"
-		echo open --user "\"${USER}\"" --password "\"${P}\"" "${PROTOCOL}://${HOST}"
+		# xxx TODO: escape single quotes in REMOTE_PASSWORD - how?  With \ ?
+		P="${REMOTE_PASSWORD}"
+		echo "open --user '${REMOTE_USER}' --password '${P}' '${PROTOCOL}://${REMOTE_HOST}' "
 		# Sometimes have problems with "max-reties 1", so make it 2
 		echo set net:max-retries 2
 		echo set net:timeout 20
-		echo rm -f ${TEMP_NAME}		# just in case it's already there
-		echo put "\"${FILE_TO_UPLOAD}\"" -o ${TEMP_NAME}
-		echo rm -f "\"${DESTINATION_FILE}\""
-		echo mv ${TEMP_NAME} "\"${REMOTE_DIR}${SLASH}${DESTINATION_FILE}\""
-		echo bye
+		echo "rm -f '${REMOTE_DIR}${TEMP_NAME}' "		# unlikely, but just in case it's already there
+		echo "put '${FILE_TO_UPLOAD}' -o '${REMOTE_DIR}${TEMP_NAME}' || (echo 'put of ${FILE_TO_UPLOAD} failed!'; exit 1) "
+		echo "rm -f '${REMOTE_DIR}${DESTINATION_FILE}' "
+		echo "mv '${REMOTE_DIR}${TEMP_NAME}' '${REMOTE_DIR}${DESTINATION_FILE}' || ( echo 'mv of ${TEMP_NAME} to ${DESTINATION_FILE} in ${REMOTE_DIR} failed!'; exit 2 )"
+		echo exit 0
 	) > "${LFTP_CMDS}"
 	lftp -f "${LFTP_CMDS}" > "${LOG}" 2>&1
 	RET=$?
