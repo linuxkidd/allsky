@@ -4,6 +4,7 @@
 # Ease setup of Allsky software using whiptail text interface
 #
 
+TITLE="Allsky Software Config Tool (allsky-config)"
 source "variables.sh"
 
 calc_wt_size() {
@@ -23,12 +24,12 @@ calc_wt_size() {
 }
 
 select_camera() {
-	CAM=$(whiptail --title "Allsky Software Config Tool (allsky-config)" --menu "Camera Type" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+	CAM = $(whiptail --title $TITLE --menu "Camera Type" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
 		"ZWO" "ZWO camera is used for allsky" \
 		"RPiHQ" "RPiHQ camera is used for allsky" \
 		3>&1 1>&2 2>&3)
 	if [ $? -eq 0 ]; then
-		sed -e "s/^CAMERA=.*$/CAMERA=\"${CAM}\"/" "$ALLSKY_CONFIG/config.sh"
+		sed -i -e "s/^CAMERA=.*$/CAMERA=\"${CAM}\"/" "$ALLSKY_CONFIG/config.sh"
 		if [ $? -eq 0 ]; then
 			whiptail --msgbox "Camera set to $CAM" 20 60 2
 			return 0
@@ -41,10 +42,47 @@ select_camera() {
 	fi
 }
 
+keogram_enable() {
+	if (whiptail --title $TITLE --yesno "Do you want to generate a keogram at the end of the night?" 8 $WT_WIDTH); then
+    	keogram_settings
+	else
+    	sed 
+	fi
+	return 0
+}
+
+startrails_enable() {
+	return 0
+}
+
+timelapse_enable() {
+	return 0
+}
+
+end_of_night() {
+	EON = $(whiptail --title $TITLE --menu "End of Night" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+		"K" "Keogram" \
+		"S" "Startrails" \
+		"T" "Timelapse" \
+		3>&1 1>&2 2>&3)
+	RETVAL=$?
+	if [ $RETVAL -eq 1 ]; then
+		return 1
+	elif [ $RETVAL -eq 0 ]; then
+		case "$EON" in
+			K) keogram_enable ;;
+			S) startrails_enable ;;
+			T) timelapse_enable ;;
+			*) return 2 ;;
+		esac
+	else
+		return 2
+	fi
+}
 
 main_menu() {
 	while true; do
-		MAIN=$(whiptail --title "Allsky Software Config Tool (allsky-config)" --menu "Main Menu" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+		MAIN=$(whiptail --title $TITLE --menu "Main Menu" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
 			"C" "Camera Selection" \
 			"E" "End of Night Processing" \
 			"P" "Post Processing" \
