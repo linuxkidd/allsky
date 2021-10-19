@@ -6,6 +6,7 @@
 
 TITLE="Allsky Software Config Tool (allsky-config)"
 source "variables.sh"
+source "$ALLSKY_CONFIG/config.sh"
 
 calc_wt_size() {
 	# NOTE: it's tempting to redirect stderr to /dev/null, so supress error
@@ -24,17 +25,17 @@ calc_wt_size() {
 }
 
 select_camera() {
-	CAM = $(whiptail --title $TITLE --menu "Camera Type" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+	CAM = $(whiptail --title "${TITLE}" --menu "Camera Type" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
 		"ZWO" "ZWO camera is used for allsky" \
 		"RPiHQ" "RPiHQ camera is used for allsky" \
 		3>&1 1>&2 2>&3)
 	if [ $? -eq 0 ]; then
-		sed -i -e "s/^CAMERA=.*$/CAMERA=\"${CAM}\"/" "$ALLSKY_CONFIG/config.sh"
+		sed -i -e "s/^CAMERA=.*$/CAMERA=\"${CAM}\"/" "{$ALLSKY_CONFIG}/config.sh"
 		if [ $? -eq 0 ]; then
-			whiptail --msgbox "Camera set to $CAM" 20 60 2
+			whiptail --msgbox "Camera set to $CAM" 20 60
 			return 0
 		else
-			whiptail --msgbox "Something went wrong setting camera to ${CAM}.  Does ${ALLSKY_CONFIG}/config.sh exist?" 20 60 2
+			whiptail --msgbox "Something went wrong setting camera to ${CAM}.  Does ${ALLSKY_CONFIG}/config.sh exist?" 20 60
 			return 1
 		fi
 	else
@@ -42,25 +43,99 @@ select_camera() {
 	fi
 }
 
+keogram_settings() {
+	PARAMS = $(whiptail --title "${TITLE}" --inputbox "Keogram Extra Parameters ( run 'keogram --help' for all options )" 8 $WT_WIDTH "${KEOGRAM_EXTRA_PARAMETERS}" 3>&1 1>&2 2>&3)
+	RETVAL=$?
+	if [ $RETVAL -eq 0 ]; then
+		sed -i -e "s/^KEOGRAM_EXTRA_PARAMETERS=.*$/KEOGRAM_EXTRA_PARAMETERS=\"${PARAMS}\"/" "${ALLSKY_CONFIG}/config.sh"
+		RETVAL=$?
+		if [ $RETVAL -eq 0 ]; then
+			KEOGRAM_EXTRA_PARAMETERS=$PARAMS
+			if (whiptail --title "${TITLE}" --yesno "Do you want to upload the generated keogram? (depends on upload settings)" 8 $WT_WIDTH); then
+				sed -i -e "s/^UPLOAD_KEOGRAM=.*$/UPLOAD_KEOGRAM=\"true\"" "${ALLSKY_CONFIG}/config.sh"
+				whiptail --msgbox "Keogram uploads enabled.  Please be sure the main menu \"Upload\" settings are set properly." 20 60
+			else
+				sed -i -e "s/^UPLOAD_KEOGRAM=.*$/UPLOAD_KEOGRAM=\"false\"" "${ALLSKY_CONFIG}/config.sh"
+			fi
+		else
+			whiptail --msgbox "Something went wrong setting keogram extra parameters, error code ${RETVAL}" 20 60
+		fi
+	elif [ $RETVAL -eq 1 ]; then
+		return 1
+	else
+		return 4
+	fi
+}
+
 keogram_enable() {
-	if (whiptail --title $TITLE --yesno "Do you want to generate a keogram at the end of the night?" 8 $WT_WIDTH); then
+	if (whiptail --title "${TITLE}" --yesno "Do you want to generate a keogram image at the end of the night?" 8 $WT_WIDTH); then
+    	sed -i -e "s/^KEOGRAM=.*$/KEOGRAM=\"true\"/" "${ALLSKY_CONFIG}/config.sh"
     	keogram_settings
 	else
-    	sed 
+    	sed -i -e "s/^KEOGRAM=.*$/KEOGRAM=\"false\"/" "${ALLSKY_CONFIG}/config.sh"
+		whiptail --title "${TITLE}" --msgbox "Keogram generation disabled."
 	fi
 	return 0
 }
 
+startrails_settings() {
+	VAL = $(whiptail --title "${TITLE}" --inputbox "Startrails Brightness Threshold - Images with a brightness higher than this threshold will be skipped for startrails image generation.  Valid values are 0.0 to 1.0." 8 $WT_WIDTH "${BRIGHTNESS_THRESHOLD}" 3>&1 1>&2 2>&3)
+	RETVAL=$?
+	if [ $RETVAL -eq 0 ]; then
+		if [ $(awk -v VAL=$VAL 'BEGIN { if( VAL >= 0.0 && VAL <= 1.0 ) { print 1 } else { print 0 }}') -eq 1 ]; then
+			sed -i -e "s/^BRIGHTNESS_THRESHOLD=.*$/BRIGHTNESS_THRESHOLD=\"${VAL}\"/" "${ALLSKY_CONFIG}/config.sh"
+			RETVAL=$?
+			if [ $RETVAL -eq 0 ]; then
+				BRIGHTNESS_THRESHOLD=$VAL
+				if (whiptail --title "${TITLE}" --yesno "Do you want to upload the generated startrails image? (depends on upload settings)" 8 $WT_WIDTH); then
+					sed -i -e "s/^UPLOAD_STARTRAILS=.*$/UPLOAD_STARTRAILS=\"true\"" "${ALLSKY_CONFIG}/config.sh"
+					whiptail --msgbox "Startrails upload enabled.  Please be sure the main menu \"Upload\" settings are set properly." 20 60
+				else
+					sed -i -e "s/^UPLOAD_STARTRAILS=.*$/UPLOAD_STARTRAILS=\"false\"" "${ALLSKY_CONFIG}/config.sh"
+				fi
+			else
+				whiptail --msgbox "Something went wrong setting startrails brightness threshold, error code ${RETVAL}" 20 60
+				return 1
+			fi
+		else
+			whiptail --msgbox "Sorry, the value must be between 0.0 and 1.0.  Please try again." 20 60
+			startrails_settings
+		fi
+	elif [ $RETVAL -eq 1 ]; then
+		return 1
+	else
+		return 4
+	fi
+}
+
 startrails_enable() {
+	if (whiptail --title "${TITLE}" --yesno "Do you want to generate a startrails image at the end of the night?" 8 $WT_WIDTH); then
+    	sed -i -e "s/^STARTRAILS=.*$/STARTRAILS=\"true\"/" "${ALLSKY_CONFIG}/config.sh"
+    	startrails_settings
+	else
+    	sed -i -e "s/^STARTRAILS=.*$/STARTRAILS=\"false\"/" "${ALLSKY_CONFIG}/config.sh"
+		whiptail --title "${TITLE}" --msgbox "Startrails generation disabled."
+	fi
 	return 0
 }
 
+timelapse_settings() {
+	whiptail --title "${TITLE}" --msgbox "There are several Timelapse settings available.  Please edit ${ALLSKY_CONFIG}/config.sh with your favorite editor ( or via the gui )."
+}
+
 timelapse_enable() {
+	if (whiptail --title "${TITLE}" --yesno "Do you want to generate a timelapse video at the end of the night?" 8 $WT_WIDTH); then
+    	sed -i -e "s/^TIMELAPSE=.*$/TIMELAPSE=\"true\"/" "${ALLSKY_CONFIG}/config.sh"
+    	timelapse_settings
+	else
+    	sed -i -e "s/^TIMELAPSE=.*$/TIMELAPSE=\"false\"/" "${ALLSKY_CONFIG}/config.sh"
+		whiptail --title "${TITLE}" --msgbox "Timelapse generation disabled."
+	fi
 	return 0
 }
 
 end_of_night() {
-	EON = $(whiptail --title $TITLE --menu "End of Night" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+	EON = $(whiptail --title "${TITLE}" --menu "End of Night" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
 		"K" "Keogram" \
 		"S" "Startrails" \
 		"T" "Timelapse" \
@@ -82,7 +157,7 @@ end_of_night() {
 
 main_menu() {
 	while true; do
-		MAIN=$(whiptail --title $TITLE --menu "Main Menu" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+		MAIN=$(whiptail --title "${TITLE}" --menu "Main Menu" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
 			"C" "Camera Selection" \
 			"E" "End of Night Processing" \
 			"P" "Post Processing" \
@@ -94,7 +169,9 @@ main_menu() {
 		elif [ $RETVAL -eq 0 ]; then
 			case "$MAIN" in
 				C) select_camera ;;
-				*) whiptail --msgbox "Sorry, this function not yet implemented." 20 60 2 ;;
+				E) end_of_night ;;
+				U) whiptail --title "${TITLE}" --msgbox "Sorry, this function not yet implemented. You can still edit the ${ALLSKY_CONFIG}/ftp-settings.sh file with your favorite editor, or via the gui." 20 60 ;;
+				*) whiptail --title "${TITLE}" --msgbox "Sorry, this function not yet implemented. You can still edit the ${ALLSKY_CONFIG}/config.sh file with your favorite editor, or via the gui." 20 60 ;;
 			esac
 		else
 			exit 1
