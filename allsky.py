@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse,json,os,sys,re,subprocess
+import argparse,json,sys,re,subprocess
 
 def findZWO():
     import usb.core,usb.util
@@ -79,16 +79,22 @@ if __name__ == "__main__":
         else:
             capture_args.extend(["-tty","0"])
 
+        if conf['DAYTIME_CAPTURE']:
+            capture_args.extend(["-daytime","1"])
+
         if args.preview:
             capture_args.extend(["-preview","1"])
+
         if int(camconf['debuglevel']) > 0:
             print("Starting capture_{0}".format(conf['CAMERA']))
+
         if int(camconf['debuglevel']) > 2:
             print("Command line: {0}".format(" ".join(capture_args)))
+
         try:
             subprocess.run(capture_args)
-        except:
-            print("Failed to run (or unclean exit): {0}".format(" ".join(capture_args)))
+        except subprocess.SubprocessError as err:
+            print("Failed to run (or unclean exit): {0}\n\nError: {1}".format(" ".join(capture_args),err))
             exit(6)
     else:
         print("Camera {0} not found.".format(conf['CAMERA']))
