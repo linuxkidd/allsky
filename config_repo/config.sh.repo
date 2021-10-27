@@ -6,10 +6,6 @@
 #  - Values can optionally be quoted with double quotes, NOT single quotes.
 #  - If a variable occurs multiple times, only the last value is used.
 
-# Choose between "ZWO" or "RPiHQ".  Note that "auto" is no longer allowed.
-CAMERA=""
-
-
 ########## Images
 # Set to "true" to upload the current image to your website.
 IMG_UPLOAD="false"
@@ -140,9 +136,6 @@ POST_END_OF_NIGHT_DATA="false"
 # You must first create dark frames - see the README.md file for instructions.
 DARK_FRAME_SUBTRACTION="false"
 
-# Set to "false" to disable daytime capture.
-DAYTIME_CAPTURE="true"
-
 # Night images are always taken and saved to disk.
 # Setting DAYTIME_SAVE to "true" also saves daytime images to disk.
 # Will only save daytime images if DAYTIME_CAPTURE="true".
@@ -158,32 +151,3 @@ UHUBCTL_PORT=2
 # Path to the camera settings (exposure, gain, delay, overlay, etc) files.
 # Do not change unless you know what you are doing.
 CAMERA_SETTINGS_DIR="${ALLSKY_CONFIG}"
-
-if [ "${CAMERA}" = "" ]; then
-	echo "${RED}ERROR: Please set CAMERA in config/config.sh${NC}"
-	exit 1
-elif [ "${CAMERA}" = "auto" ]; then
-	echo "${RED}ERROR: 'auto' is no longer a valid CAMERA type.  Please reset CAMERA in config/config.sh${NC}"
-	exit 1
-fi
-
-# !!! The next few lines are for backwards compatibility and will be removed in the future - do not change !!!
-UPLOAD_IMG="${IMG_UPLOAD}"	# UPLOAD_IMG is th eold name for IMG_UPLOAD
-if [ "${DAYTIME_CAPTURE}" = "true" ]; then
-	DAYTIME=1		# DAYTIME is the old name for DAYTIME_CAPTURE
-else
-	DAYTIME=0
-fi
-CAPTURE_24HR=${DAYTIME_SAVE}	# CAPTURE_24HR is the old name for DAYTIME_SAVE
-
-if [[ ${CAMERA} == "auto" ]]; then
-	# Restore currently saved autodiscovered camera type, if any.
-	source "${ALLSKY_CONFIG}/autocam.sh"	# May reset ${CAMERA}
-fi
-if [[ ${CAMERA} != "auto" ]]; then
-	CAMERA_SETTINGS="${CAMERA_SETTINGS_DIR}/settings_${CAMERA}.json"
- 
-	# So scripts can conditionally ouput messages; DO NOT CHANGE NEXT LINES.
-	ALLSKY_DEBUG_LEVEL=$(jq -r '.debuglevel' "${CAMERA_SETTINGS}")
-fi
-ALLSKY_DEBUG_LEVEL=${ALLSKY_DEBUG_LEVEL:-0}

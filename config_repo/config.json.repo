@@ -1,0 +1,8 @@
+{
+    "_cam_comment":"Must be either ZWO or RPiHQ",
+    "CAMERA": "ZWO",
+    "_daytime_capture_comment":"Either true or false, determines if images are captured during the day",
+    "DAYTIME_CAPTURE": true,
+    "_config_path_comment":"Path where settings_ZWO.json or settings_RPiHQ.json are located.",
+    "CONFIG_PATH": "/etc/allsky"
+}
