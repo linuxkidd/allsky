@@ -4,6 +4,8 @@ After=multi-user.target
 
 [Service]
 User=pi
+WorkingDirectory=/home/pi/allsky
+Environment=ALLSKY_HOME=/home/pi/allsky
 ExecStart=/home/pi/allsky/allsky.py -c ~pi/allsky/config/config.json
 SyslogFacility=local5
 Restart=always
