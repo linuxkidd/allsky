@@ -23,6 +23,13 @@ def reload_image():
         print("Cannot load {0}".format(args.image))
         exit(99)
 
+def save_image(outfile):
+    try:
+        cv2.imwrite(outfile, globals()['image'])
+    except:
+        print("Failed to save image {0}".format(outfile))
+        exit(97)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", default = "/etc/allsky/config.json", help="Config file to use.  Default: /etc/allsky/config.json")
