@@ -1,3 +1,4 @@
 [
-        { "module":"resize", "arguments":{"x":1920,"y":1080} }
+        { "module":"resize", "arguments":{"x":1920,"y":1080} },
+        { "module":"save_image", "arguments":{"path":"/home/pi/"} }
 ]
