@@ -16,8 +16,6 @@ import shared as s
 import PythonMagick as Magick
 
 def crop(params):
-    if 'keep_aspect' not in params:
-        params['keep_aspect']=True
     size = s.image.size()
     if params['x'] < size.width() and params['y'] < size.height():
         # Crop the image to specified size (width, height, xOffset, yOffset)
